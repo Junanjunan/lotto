@@ -1,0 +1,36 @@
+body{
+    background-color: rgb(199, 233, 222);
+    text-align: center; 
+}
+
+h1{
+    font-size: 50px;
+}
+
+div{
+    background-color:  rgb(225, 243, 237);
+    font-variant: initial;
+    border-radius: 30px;
+}
+
+.html_num_list{
+    text-align: center;
+    flex-direction: column;
+}
+
+.form_box{
+    background-color:  rgb(199, 233, 222);
+    height: 45px;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px;    
+}
+
+input{
+    margin: 10px;
+    height: 30px;
+    width: 100px;
+    border-radius: 15px;
+}
