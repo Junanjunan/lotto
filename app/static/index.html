@@ -126,6 +126,55 @@
     .rank-miss {
       color: #7a8799;
     }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .section-head h2 {
+      margin: 0;
+    }
+    .inline-toggle {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 999px;
+      background: #dbe6ff;
+      color: #1f3e7a;
+      border: 1px solid #b2c4ff;
+      font-weight: 700;
+      margin-right: 0;
+    }
+    .list-wrap {
+      margin-top: 12px;
+      display: none;
+    }
+    .draw-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background: #f8faff;
+    }
+    .draw-table th,
+    .draw-table td {
+      text-align: center;
+      word-break: break-all;
+    }
+    .draw-table th:nth-child(3),
+    .draw-table td:nth-child(3),
+    .draw-table th:nth-child(4),
+    .draw-table td:nth-child(4),
+    .draw-table th:nth-child(5),
+    .draw-table td:nth-child(5) {
+      text-align: left;
+    }
+    .scroll-table {
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid #d8e1f0;
+      border-radius: 10px;
+    }
   </style>
 </head>
 <body>
@@ -166,6 +215,17 @@
     </div>
 
     <div class="panel">
+      <div class="section-head">
+        <h2>모든 당첨번호</h2>
+        <button id="allDrawsToggle" class="inline-toggle" aria-expanded="false">▶</button>
+      </div>
+      <p id="allDrawsStatus" class="muted">토글해서 전체 당첨번호를 불러와 보세요.</p>
+      <div id="allDrawsWrap" class="list-wrap">
+        <div id="allDraws" class="small">로딩 중...</div>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2>생성 결과</h2>
       <div id="results"></div>
     </div>
@@ -182,8 +242,14 @@
 
   var statusEl = document.getElementById('status');
   var drawsEl = document.getElementById('draws');
+  var allDrawsWrapEl = document.getElementById('allDrawsWrap');
+  var allDrawsEl = document.getElementById('allDraws');
+  var allDrawsStatusEl = document.getElementById('allDrawsStatus');
+  var allDrawsToggleEl = document.getElementById('allDrawsToggle');
   var summaryEl = document.getElementById('summary');
   var resultEl = document.getElementById('results');
+  var allDrawsLoaded = false;
+  var allDrawsCount = 0;
 
   function setStatus(msg) {
     statusEl.textContent = msg;
@@ -217,6 +283,31 @@
       out.push(key + '등:' + value);
     }
     return out.join(', ');
+  }
+
+  function renderAllDraws(draws) {
+    if (!draws || draws.length === 0) {
+      return '<p class="small" style="margin:0;">저장된 당첨번호가 없습니다.</p>';
+    }
+
+    var rows = '';
+    for (var i = draws.length - 1; i >= 0; i--) {
+      var d = draws[i];
+      var numbers = formatNumberList(d.numbers);
+      rows += '<tr>' +
+        '<td>' + d.draw_no + '</td>' +
+        '<td>' + d.draw_date + '</td>' +
+        '<td>' + numbers + '</td>' +
+        '<td>' + d.bonus + '</td>' +
+        '</tr>';
+    }
+
+    return '<div class="small" style="margin:0 0 8px 0;">총 ' + draws.length + '회차</div>' +
+      '<div class="scroll-table">' +
+      '<table class="draw-table">' +
+      '<thead><tr><th>회차</th><th>추첨일</th><th>당첨번호</th><th>보너스</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '</div>';
   }
 
   function renderGameDetailHits(hits) {
@@ -265,15 +356,34 @@
 
   function syncDraws() {
     setStatus('동기화 실행 중...');
+    allDrawsLoaded = false;
     fetchJson('/api/sync', {
       method: 'POST'
     })
       .then(function (data) {
         setStatus('동기화 완료: status=' + data.status + ', inserted=' + data.inserted + ', updated=' + data.updated + ', skipped=' + data.skipped);
         loadDraws();
+        if (allDrawsWrapEl.style.display !== 'none') {
+          loadAllDraws();
+        }
       })
       .catch(function (err) {
         setStatus('동기화 실패: ' + err.message);
+      });
+  }
+
+  function loadAllDraws() {
+    allDrawsStatusEl.textContent = '모든 당첨번호 로딩 중...';
+    fetchJson('/api/draws')
+      .then(function (data) {
+        allDrawsCount = data.count || (data.draws ? data.draws.length : 0);
+        allDrawsEl.innerHTML = renderAllDraws(data.draws);
+        allDrawsStatusEl.textContent = '총 ' + (data.count || (data.draws && data.draws.length)) + '회차가 저장되어 있습니다.';
+        allDrawsLoaded = true;
+      })
+      .catch(function (err) {
+        allDrawsEl.textContent = '로딩 실패';
+        allDrawsStatusEl.textContent = '당첨번호 로딩 실패: ' + err.message;
       });
   }
 
@@ -366,6 +476,25 @@
 
   document.getElementById('runBtn').addEventListener('click', runGames);
   document.getElementById('syncBtn').addEventListener('click', syncDraws);
+  allDrawsToggleEl.addEventListener('click', function () {
+    var expanded = allDrawsToggleEl.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      allDrawsWrapEl.style.display = 'none';
+      allDrawsToggleEl.setAttribute('aria-expanded', 'false');
+      allDrawsToggleEl.textContent = '▶';
+      allDrawsStatusEl.textContent = '토글해서 전체 당첨번호를 불러와 보세요.';
+      return;
+    }
+
+    allDrawsWrapEl.style.display = 'block';
+    allDrawsToggleEl.setAttribute('aria-expanded', 'true');
+    allDrawsToggleEl.textContent = '▼';
+    if (!allDrawsLoaded) {
+      loadAllDraws();
+    } else {
+      allDrawsStatusEl.textContent = '총 ' + allDrawsCount + '회차가 저장되어 있습니다.';
+    }
+  });
 
   loadDraws();
 </script>
