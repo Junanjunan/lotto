@@ -38,6 +38,18 @@ def create_app() -> FastAPI:
 
     app_dir = Path(__file__).resolve().parent
     ui_index_path = app_dir / "static" / "index.html"
+    ui_headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+
+    def render_ui():
+        return FileResponse(
+            ui_index_path,
+            media_type="text/html",
+            headers=ui_headers,
+        )
 
     @app.get("/health")
     def health() -> dict:
@@ -62,11 +74,11 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     def serve_ui():
-        return FileResponse(ui_index_path)
+        return render_ui()
 
     @app.get("/lotto", include_in_schema=False)
     def serve_ui_alias():
-        return FileResponse(ui_index_path)
+        return render_ui()
 
     @app.get("/lotto/{path:path}", include_in_schema=False)
     def serve_ui_lotto_path(path: str):
@@ -83,7 +95,7 @@ def create_app() -> FastAPI:
         )
         if path.startswith(excluded_prefixes):
             raise HTTPException(status_code=404, detail="not found")
-        return FileResponse(ui_index_path)
+        return render_ui()
 
     @app.post("/api/sync", response_model=SyncResponse)
     def run_sync() -> SyncResponse:

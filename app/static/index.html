@@ -110,6 +110,10 @@
       font-weight: 700;
       margin-right: 8px;
     }
+    .toggle-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
     .game-row td:first-child {
       text-align: center;
     }
@@ -344,9 +348,24 @@
   }
 
   function loadDraws() {
-    fetchJson('/api/draws?start_no=1&end_no=1')
+    fetchJson('/api/draws')
       .then(function (data) {
-        drawsEl.textContent = JSON.stringify(data, null, 2);
+        if (!data.draws || data.draws.length === 0) {
+          drawsEl.textContent = '저장된 회차 데이터가 없습니다.';
+          return;
+        }
+        var latest = data.draws[data.draws.length - 1];
+        drawsEl.textContent = JSON.stringify(
+          {
+            total_count: data.count,
+            latest_draw_no: latest.draw_no,
+            latest_numbers: latest.numbers,
+            bonus: latest.bonus,
+            draw_date: latest.draw_date,
+          },
+          null,
+          2,
+        );
       })
       .catch(function (err) {
         setStatus(err.message);
@@ -421,8 +440,11 @@
           var dist = formatDistribution(g.rank_distribution);
           var detailId = 'game-detail-' + i;
           var hasHits = g.hits && g.hits.length > 0;
-          var detailRows = hasHits ? renderGameDetailHits(g.hits) : '';
-          var toggleCell = hasHits ? '<button class="toggle-btn game-toggle" data-target="' + detailId + '" aria-expanded="false">▶</button>' : '-';
+          var detailRows = hasHits ? renderGameDetailHits(g.hits) : '<p class="small" style="margin:0;">당첨 내역이 없습니다.</p>';
+          var toggleLabel = hasHits ? '▶' : '－';
+          var toggleTitle = hasHits ? '당첨 내역 보기' : '당첨 내역 없음';
+          var disabledAttr = hasHits ? '' : ' disabled';
+          var toggleCell = '<button class="toggle-btn game-toggle" data-target="' + detailId + '" aria-expanded="false" title="' + toggleTitle + '"' + disabledAttr + '>' + toggleLabel + '</button>';
 
           rows += '<tr>' +
             '<td>' + toggleCell + '</td>' +
@@ -431,13 +453,11 @@
             '<td>' + dist + '</td>' +
             '<td>' + g.total_hits + '</td>' +
             '</tr>';
-          if (hasHits) {
-            rows += '<tr id="' + detailId + '" class="game-detail-row" style="display:none;">' +
-              '<td colspan="5">' +
-              '<div class="game-detail">' + detailRows + '</div>' +
-              '</td>' +
-              '</tr>';
-          }
+          rows += '<tr id="' + detailId + '" class="game-detail-row" style="display:none;">' +
+            '<td colspan="5">' +
+            '<div class="game-detail">' + detailRows + '</div>' +
+            '</td>' +
+            '</tr>';
         }
 
         resultEl.innerHTML = '<table class="game-table"><thead><tr><th></th><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>' + rows + '</tbody></table>';
@@ -445,6 +465,9 @@
         var toggles = document.getElementsByClassName('game-toggle');
         for (var t = 0; t < toggles.length; t++) {
           toggles[t].addEventListener('click', function () {
+            if (this.disabled) {
+              return;
+            }
             var targetId = this.getAttribute('data-target');
             var row = document.getElementById(targetId);
             if (!row) {
