@@ -35,16 +35,23 @@ def evaluate_games(games: list[list[int]], draws: list[Draw]) -> list[dict]:
     for idx, game_numbers in enumerate(games):
         rank_distribution = defaultdict(int)
         hits: list[dict] = []
+        game_set = set(game_numbers)
 
         for draw in draws:
             match_count, bonus_match, rank = evaluate_game_numbers(game_numbers, draw)
             rank_distribution[rank] += 1
+            if rank == 0:
+                continue
+
+            matched_numbers = sorted(game_set & set(draw.numbers))
             hits.append(
                 {
                     "draw_no": draw.draw_no,
                     "match_count": match_count,
                     "bonus_match": bonus_match,
                     "rank": rank,
+                    "draw_numbers": draw.numbers,
+                    "matched_numbers": matched_numbers,
                 }
             )
 

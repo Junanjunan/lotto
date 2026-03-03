@@ -200,6 +200,13 @@
     return rank + '등';
   }
 
+  function formatNumberList(nums) {
+    if (!nums || nums.length === 0) {
+      return '-';
+    }
+    return nums.join(', ');
+  }
+
   function formatDistribution(dist) {
     var labels = [1, 2, 3, 4, 5];
     var out = [];
@@ -214,21 +221,22 @@
 
   function renderGameDetailHits(hits) {
     if (!hits || hits.length === 0) {
-      return '<p class="small" style="margin:0;">역대 회차 중 적중 이력이 없습니다.</p>';
+      return '';
     }
     var rows = '';
     for (var i = 0; i < hits.length; i++) {
       var h = hits[i];
-      var isMiss = h.rank === 0;
       rows += '<tr>' +
         '<td>' + h.draw_no + '</td>' +
+        '<td>' + formatNumberList(h.draw_numbers) + '</td>' +
         '<td>' + h.match_count + '</td>' +
         '<td>' + (h.bonus_match ? 'O' : 'X') + '</td>' +
-        '<td' + (isMiss ? ' class="rank-miss"' : '') + '>' + rankLabel(h.rank) + '</td>' +
+        '<td>' + formatNumberList(h.matched_numbers) + '</td>' +
+        '<td>' + rankLabel(h.rank) + '</td>' +
         '</tr>';
     }
     return '<table class="game-table">' +
-      '<thead><tr><th>회차</th><th>일치 개수</th><th>보너스 일치</th><th>등수</th></tr></thead>' +
+      '<thead><tr><th>회차</th><th>당첨번호(보너스 제외)</th><th>일치 개수</th><th>보너스</th><th>당첨된 번호</th><th>등수</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>';
   }
 
@@ -302,20 +310,24 @@
           var g = data.games[i];
           var dist = formatDistribution(g.rank_distribution);
           var detailId = 'game-detail-' + i;
-          var detailRows = renderGameDetailHits(g.hits);
+          var hasHits = g.hits && g.hits.length > 0;
+          var detailRows = hasHits ? renderGameDetailHits(g.hits) : '';
+          var toggleCell = hasHits ? '<button class="toggle-btn game-toggle" data-target="' + detailId + '" aria-expanded="false">▶</button>' : '-';
 
           rows += '<tr>' +
-            '<td><button class="toggle-btn game-toggle" data-target="' + detailId + '" aria-expanded="false">▶</button></td>' +
+            '<td>' + toggleCell + '</td>' +
             '<td>' + (g.game_index + 1) + '</td>' +
             '<td>' + fmtNums(g.numbers) + '</td>' +
             '<td>' + dist + '</td>' +
             '<td>' + g.total_hits + '</td>' +
             '</tr>';
-          rows += '<tr id="' + detailId + '" class="game-detail-row" style="display:none;">' +
-            '<td colspan="5">' +
-            '<div class="game-detail">' + detailRows + '</div>' +
-            '</td>' +
-            '</tr>';
+          if (hasHits) {
+            rows += '<tr id="' + detailId + '" class="game-detail-row" style="display:none;">' +
+              '<td colspan="5">' +
+              '<div class="game-detail">' + detailRows + '</div>' +
+              '</td>' +
+              '</tr>';
+          }
         }
 
         resultEl.innerHTML = '<table class="game-table"><thead><tr><th></th><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>' + rows + '</tbody></table>';
