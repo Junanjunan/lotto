@@ -47,11 +47,17 @@ docker compose up -d
 - 웹 API: `http://localhost:8645`
 - 헬스체크: `http://localhost:8645/health`
 - API 스펙(자동 생성) 참고: `/docs`
+- 브라우저에서 서비스하려면 `/lotto/` 경로를 프록시할 nginx 규칙을 추가하면 됩니다.
 
 ### 수동 동기화
 ```bash
 docker compose exec web python -m app.cli sync
 ```
+
+### Nginx 연동 (`/lotto` 서브패스)
+- `/home/taltal/git/lotto/nginx/lotto-taltalrealty.location.conf`에 기본 프록시 예시를 넣어 두었습니다.
+- 핵심은 `location /lotto/`를 FastAPI 컨테이너 포트 `8645`로 연결하고, `/lotto`는 `/lotto/`로 리다이렉트하는 것입니다.
+- 권장 설정은 `proxy_pass http://127.0.0.1:8645;` + `rewrite ^/lotto/(.*)$ /$1 break;` 입니다.
 
 ### 게임 생성 예시
 ```bash

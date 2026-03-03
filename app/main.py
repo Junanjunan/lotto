@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.config import Settings
 from app.db import Database
@@ -16,7 +18,8 @@ from app.services.evaluator import evaluate_games as _evaluate
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Lotto Simulation Service")
+    root_path = os.getenv("FASTAPI_ROOT_PATH", "")
+    app = FastAPI(title="Lotto Strategy Service", root_path=root_path)
 
     app.add_middleware(
         CORSMiddleware,
@@ -33,11 +36,14 @@ def create_app() -> FastAPI:
     crawler = LotteryCrawler(settings)
     sync_service = SyncService(settings, db, crawler)
 
+    app_dir = Path(__file__).resolve().parent
+    ui_index_path = app_dir / "static" / "index.html"
+
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
 
-    @app.get("/")
+    @app.get("/meta")
     def root() -> dict:
         return {
             "name": "lotto-service",
@@ -53,6 +59,31 @@ def create_app() -> FastAPI:
             ],
             "strategies": list(STRATEGIES.keys()),
         }
+
+    @app.get("/")
+    def serve_ui():
+        return FileResponse(ui_index_path)
+
+    @app.get("/lotto", include_in_schema=False)
+    def serve_ui_alias():
+        return FileResponse(ui_index_path)
+
+    @app.get("/lotto/{path:path}", include_in_schema=False)
+    def serve_ui_lotto_path(path: str):
+        excluded_prefixes = (
+            "api",
+            "api/",
+            "docs",
+            "openapi.json",
+            "health",
+            "meta",
+            "favicon.ico",
+            "assets/",
+            "static/",
+        )
+        if path.startswith(excluded_prefixes):
+            raise HTTPException(status_code=404, detail="not found")
+        return FileResponse(ui_index_path)
 
     @app.post("/api/sync", response_model=SyncResponse)
     def run_sync() -> SyncResponse:

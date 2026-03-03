@@ -7,6 +7,7 @@ services:
     environment:
       LOTTO_DB_PATH: /app/data/lotto.db
       TZ: Asia/Seoul
+      FASTAPI_ROOT_PATH: ${FASTAPI_ROOT_PATH:-}
     volumes:
       - ./data:/app/data
     restart: unless-stopped

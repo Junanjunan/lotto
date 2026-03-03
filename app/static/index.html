@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lotto 전략 생성기</title>
+  <style>
+    body {
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #f7f8fc, #e3ecff 60%, #dff4ff);
+      color: #1b2738;
+    }
+    .wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 10px 0 18px;
+    }
+    .panel {
+      background: rgba(255, 255, 255, 0.82);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 12px 30px rgba(45, 77, 130, 0.13);
+      border: 1px solid rgba(76, 108, 255, 0.16);
+    }
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 12px;
+      margin-bottom: 10px;
+    }
+    input, select {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #9fb4db;
+    }
+    button {
+      background: linear-gradient(90deg, #5b70ff, #2fb6ff);
+      border: 0;
+      color: white;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      background: #edf2ff;
+      border: 1px solid #b5c4ff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+    .muted {
+      color: #5b6677;
+      margin: 8px 0 0;
+    }
+    pre {
+      background: #0b1020;
+      color: #d7e2ff;
+      border-radius: 12px;
+      padding: 12px;
+      overflow: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      border-bottom: 1px solid #d8e1f0;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th {
+      text-align: center;
+      color: #26344b;
+      background: #eef3ff;
+    }
+    .small {
+      color: #5f6f8a;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>로또 전략 게임 생성기</h1>
+    <div class="panel">
+      <p class="muted">지정한 회차까지 저장된 결과를 기준으로 과거 당첨 결과를 조회해 게임별 등수 분포를 바로 표시합니다.</p>
+      <div>
+        <label>
+          게임 수
+          <input id="gameCount" type="number" min="1" value="5" />
+        </label>
+        <label>
+          전략
+          <select id="strategy">
+            <option value="low_overlap_random">low_overlap_random</option>
+            <option value="uniform_random">uniform_random</option>
+          </select>
+        </label>
+        <label>
+          시드
+          <input id="seed" type="number" placeholder="선택: 1.." />
+        </label>
+        <button id="runBtn">게임 생성</button>
+        <button id="syncBtn">동기화 실행</button>
+      </div>
+      <p id="status" class="muted">준비됨</p>
+    </div>
+
+    <div class="panel">
+      <h2>요약</h2>
+      <div id="summary" class="chips"></div>
+    </div>
+
+    <div class="panel">
+      <h2>최근 동기화 / 회차</h2>
+      <pre id="draws">loading...</pre>
+    </div>
+
+    <div class="panel">
+      <h2>생성 결과</h2>
+      <div id="results"></div>
+    </div>
+  </div>
+
+<script>
+  const api = () => {
+    const p = window.location.pathname;
+    if (p === '/lotto' || p.startsWith('/lotto/')) {
+      return '/lotto';
+    }
+    return '';
+  }();
+
+  const statusEl = document.getElementById('status');
+  const drawsEl = document.getElementById('draws');
+  const summaryEl = document.getElementById('summary');
+  const resultEl = document.getElementById('results');
+
+  function setStatus(msg) {
+    statusEl.textContent = msg;
+  }
+
+  function fmtNums(nums) {
+    return nums.join(', ');
+  }
+
+  async function fetchJson(url, options={}) {
+    const res = await fetch(api() + url, options);
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(body || `${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  }
+
+  async function loadDraws() {
+    try {
+      const data = await fetchJson('/api/draws?start_no=1&end_no=1');
+      drawsEl.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      setStatus(err.message);
+      drawsEl.textContent = '회차 조회 실패';
+    }
+  }
+
+  async function syncDraws() {
+    try {
+      setStatus('동기화 실행 중...');
+      const data = await fetchJson('/api/sync', {
+        method: 'POST'
+      });
+      setStatus(`동기화 완료: status=${data.status}, inserted=${data.inserted}, updated=${data.updated}, skipped=${data.skipped}`);
+      await loadDraws();
+    } catch (err) {
+      setStatus(`동기화 실패: ${err.message}`);
+    }
+  }
+
+  async function runGames() {
+    const gameCount = parseInt(document.getElementById('gameCount').value || '0', 10);
+    const strategy = document.getElementById('strategy').value;
+    const seedRaw = document.getElementById('seed').value;
+    const body = { game_count: gameCount, strategy };
+    if (seedRaw.trim()) body.seed = parseInt(seedRaw, 10);
+
+    if (!Number.isFinite(gameCount) || gameCount < 1) {
+      setStatus('게임 수는 1 이상이어야 합니다');
+      return;
+    }
+
+    try {
+      setStatus('생성 중...');
+      const data = await fetchJson('/api/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      summaryEl.innerHTML = '';
+      summaryEl.insertAdjacentHTML('beforeend', `<span class="chip">실행 ID: ${data.run_id}</span>`);
+      summaryEl.insertAdjacentHTML('beforeend', `<span class="chip">전략: ${data.strategy}</span>`);
+      summaryEl.insertAdjacentHTML('beforeend', `<span class="chip">게임 수: ${data.game_count}</span>`);
+      summaryEl.insertAdjacentHTML('beforeend', `<span class="chip">평가 기준 회차: ${data.evaluated_until}</span>`);
+
+      const rows = data.games.map(g => `
+        <tr>
+          <td>${g.game_index + 1}</td>
+          <td>${fmtNums(g.numbers)}</td>
+          <td>${Object.entries(g.rank_distribution || {}).map(([k,v]) => `${k}등:${v}`).join(', ') || '0'}</td>
+          <td>${g.total_hits}</td>
+        </tr>
+      `).join('');
+
+      resultEl.innerHTML = `<table><thead><tr><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>${rows}</tbody></table>`;
+      setStatus('완료');
+    } catch (err) {
+      setStatus(`게임 생성 실패: ${err.message}`);
+      resultEl.textContent = '';
+    }
+  }
+
+  document.getElementById('runBtn').addEventListener('click', runGames);
+  document.getElementById('syncBtn').addEventListener('click', syncDraws);
+
+  loadDraws();
+</script>
+</body>
+</html>
