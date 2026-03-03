@@ -27,34 +27,31 @@ def _to_int(v) -> int | None:
 
 
 def _find_draw_fields(row: tuple) -> tuple[int, str, list[int], int] | None:
-    nums = [_to_int(v) for v in row if _to_int(v) is not None]
-    nums = [n for n in nums if n is not None]
+    values = [_to_int(v) for v in row]
 
-    # common style: [1213, 20260228, 5, 11, ...]
-    if len(nums) >= 8 and 1 <= nums[0] <= 10000:
-        draw_no = nums[0]
-        # date is optional, numbers may start after one index
-        candidate = nums[1:9]
-        # if draw date exists as 8-digit date, shift accordingly
-        if len(candidate) >= 8 and candidate[0] > 20000000:
-            candidate = candidate[1:8]
+    # Newer format: [row_no, draw_no, n1, n2, n3, n4, n5, n6, bonus, ...]
+    if len(values) >= 9 and values[1] is not None and 1 <= values[1] <= 10000:
+        draw_no = values[1]
+        main = values[2:8]
+        bonus = values[8]
+        if len(main) == 6 and bonus is not None and _valid_lotto_numbers(main, bonus):
+            return draw_no, "", sorted(main), bonus
 
-        if len(candidate) >= 7:
-            main = candidate[:6]
-            bonus = candidate[6]
-            if _valid_lotto_numbers(main, bonus):
-                return draw_no, "", sorted(main), bonus
-
-    # fallback pattern where first seven numbers are draw+6 nums+bonus
-    for i in range(min(3, len(nums) - 7)):
-        draw_no = nums[i]
-        if not (1 <= draw_no <= 10000):
-            continue
-        main = nums[i + 1 : i + 7]
-        bonus = nums[i + 7]
-        if len(main) < 6:
-            continue
-        if _valid_lotto_numbers(main, bonus):
+    # Legacy/alternate format: [draw_no, n1, ..., n7, bonus, ...]
+    if len(values) >= 8 and values[0] is not None and 1 <= values[0] <= 10000:
+        draw_no = values[0]
+        # if second column is date (YYYYMMDD), numbers start from index 2
+        if values[1] is not None and values[1] > 20000000 and len(values) >= 9:
+            main = values[2:8]
+            bonus = values[8]
+        else:
+            # first column is draw_no and next 6 are main numbers
+            main = values[1:7]
+            if len(values) >= 8:
+                bonus = values[7]
+            else:
+                bonus = None
+        if len(main) == 6 and bonus is not None and _valid_lotto_numbers(main, bonus):
             return draw_no, "", sorted(main), bonus
 
     return None
@@ -78,8 +75,8 @@ def parse_excel_draws(content: bytes) -> list[Draw]:
     ws = wb[wb.sheetnames[0]]
     rows = ws.iter_rows(values_only=True)
 
-    # skip header rows until values appear
     parsed: list[Draw] = []
+    seen_draws: set[int] = set()
 
     for raw in rows:
         if all(v is None for v in raw):
@@ -87,8 +84,10 @@ def parse_excel_draws(content: bytes) -> list[Draw]:
         found = _find_draw_fields(raw)
         if not found:
             continue
-
         draw_no, draw_date, main_nums, bonus = found
+        if draw_no in seen_draws:
+            continue
+        seen_draws.add(draw_no)
         parsed.append(Draw(draw_no=draw_no, draw_date=str(draw_date or ""), numbers=list(main_nums), bonus=bonus))
 
     return parsed

@@ -48,6 +48,26 @@ class SyncService:
                 continue
         return out
 
+    def _build_json_map(self, payload: dict) -> dict[int, Draw]:
+        out = {}
+        for row in payload.get("data", {}).get("list", []):
+            try:
+                draw_no = int(row["ltEpsd"])
+                main = [
+                    int(row["tm1WnNo"]),
+                    int(row["tm2WnNo"]),
+                    int(row["tm3WnNo"]),
+                    int(row["tm4WnNo"]),
+                    int(row["tm5WnNo"]),
+                    int(row["tm6WnNo"]),
+                ]
+                bonus = int(row["bnsWnNo"])
+                date = row.get("ltRflYmd", "")
+                out[draw_no] = Draw(draw_no=draw_no, draw_date=str(date), numbers=sorted(main), bonus=bonus)
+            except (TypeError, KeyError, ValueError):
+                continue
+        return out
+
     def run_weekly_sync(self) -> SyncOutput:
         started_at = datetime.now(timezone.utc).isoformat()
         inserted = updated = skipped = 0
@@ -70,6 +90,32 @@ class SyncService:
                 err_msg = str(exc)
                 payload = self.crawler.fetch_draws_json(1, latest)
                 records = self._build_records_from_json(payload)
+
+            # merge metadata from API payload for stable draw date (and to fill potential missing rounds)
+            try:
+                payload = self.crawler.fetch_draws_json(1, latest)
+                json_map = self._build_json_map(payload)
+                merged: dict[int, Draw] = {r.draw_no: r for r in records}
+                for r in merged.values():
+                    json_row = json_map.get(r.draw_no)
+                    if json_row and not r.draw_date:
+                        r.draw_date = json_row.draw_date
+                for draw_no in range(1, latest + 1):
+                    if draw_no not in merged and draw_no in json_map:
+                        merged[draw_no] = json_map[draw_no]
+                records = sorted(merged.values(), key=lambda d: d.draw_no)
+
+                # if Excel missed some rounds, prefer API row data completely if it fills the gap.
+                if len(records) != latest:
+                    missing = [n for n in range(1, latest + 1) if n not in merged]
+                    if missing:
+                        source = "api_fill"
+                        for missing_no in missing:
+                            if missing_no in json_map:
+                                records.append(json_map[missing_no])
+                        records = sorted({d.draw_no: d for d in records}.values(), key=lambda d: d.draw_no)
+            except Exception:
+                pass
 
             # fallback safety
             if not records:
