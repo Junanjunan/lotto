@@ -165,6 +165,7 @@ def create_app() -> FastAPI:
                     "numbers": g["numbers"],
                     "rank_distribution": g["rank_distribution"],
                     "total_hits": g["total_hits"],
+                    "hits": g["hits"],
                 }
                 for g in evaluated
             ],

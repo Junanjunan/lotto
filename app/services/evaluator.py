@@ -30,6 +30,7 @@ def evaluate_game_numbers(game_numbers: list[int], draw: Draw) -> tuple[int, int
 
 def evaluate_games(games: list[list[int]], draws: list[Draw]) -> list[dict]:
     out: list[dict] = []
+    rank_labels = (1, 2, 3, 4, 5)
 
     for idx, game_numbers in enumerate(games):
         rank_distribution = defaultdict(int)
@@ -47,12 +48,18 @@ def evaluate_games(games: list[list[int]], draws: list[Draw]) -> list[dict]:
                 }
             )
 
+        public_distribution = {
+            label: rank_distribution[label]
+            for label in rank_labels
+            if rank_distribution[label] > 0
+        }
+
         out.append(
             {
                 "game_index": idx,
                 "numbers": game_numbers,
-                "rank_distribution": dict(rank_distribution),
-                "total_hits": rank_distribution[1] + rank_distribution[2] + rank_distribution[3] + rank_distribution[4] + rank_distribution[5],
+                "rank_distribution": public_distribution,
+                "total_hits": sum(rank_distribution[label] for label in rank_labels),
                 "hits": hits,
             }
         )

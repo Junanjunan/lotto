@@ -92,6 +92,40 @@
       color: #5f6f8a;
       font-size: 12px;
     }
+    .game-table th,
+    .game-table td {
+      text-align: center;
+    }
+    .game-table td:nth-child(2) {
+      text-align: left;
+    }
+    .toggle-btn {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 999px;
+      background: #dbe6ff;
+      color: #1f3e7a;
+      border: 1px solid #b2c4ff;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .game-row td:first-child {
+      text-align: center;
+    }
+    .game-detail-row td {
+      padding: 0;
+    }
+    .game-detail {
+      display: none;
+      padding: 12px 10px;
+      background: #f6f8ff;
+      border: 1px solid #d6e0fa;
+      border-top: 0;
+    }
+    .rank-miss {
+      color: #7a8799;
+    }
   </style>
 </head>
 <body>
@@ -138,18 +172,18 @@
   </div>
 
 <script>
-  const api = () => {
-    const p = window.location.pathname;
-    if (p === '/lotto' || p.startsWith('/lotto/')) {
-      return '/lotto';
+  var apiBase = '';
+  (function () {
+    var p = window.location.pathname;
+    if (p === '/lotto' || p.indexOf('/lotto/') === 0) {
+      apiBase = '/lotto';
     }
-    return '';
-  }();
+  }());
 
-  const statusEl = document.getElementById('status');
-  const drawsEl = document.getElementById('draws');
-  const summaryEl = document.getElementById('summary');
-  const resultEl = document.getElementById('results');
+  var statusEl = document.getElementById('status');
+  var drawsEl = document.getElementById('draws');
+  var summaryEl = document.getElementById('summary');
+  var resultEl = document.getElementById('results');
 
   function setStatus(msg) {
     statusEl.textContent = msg;
@@ -159,79 +193,163 @@
     return nums.join(', ');
   }
 
-  async function fetchJson(url, options={}) {
-    const res = await fetch(api() + url, options);
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(body || `${res.status} ${res.statusText}`);
+  function rankLabel(rank) {
+    if (rank === 0) {
+      return '미당첨';
     }
-    return res.json();
+    return rank + '등';
   }
 
-  async function loadDraws() {
-    try {
-      const data = await fetchJson('/api/draws?start_no=1&end_no=1');
-      drawsEl.textContent = JSON.stringify(data, null, 2);
-    } catch (err) {
-      setStatus(err.message);
-      drawsEl.textContent = '회차 조회 실패';
+  function formatDistribution(dist) {
+    var labels = [1, 2, 3, 4, 5];
+    var out = [];
+    for (var i = 0; i < labels.length; i++) {
+      var rank = labels[i];
+      var key = String(rank);
+      var value = dist && Object.prototype.hasOwnProperty.call(dist, key) ? dist[key] : 0;
+      out.push(key + '등:' + value);
     }
+    return out.join(', ');
   }
 
-  async function syncDraws() {
-    try {
-      setStatus('동기화 실행 중...');
-      const data = await fetchJson('/api/sync', {
-        method: 'POST'
+  function renderGameDetailHits(hits) {
+    if (!hits || hits.length === 0) {
+      return '<p class="small" style="margin:0;">역대 회차 중 적중 이력이 없습니다.</p>';
+    }
+    var rows = '';
+    for (var i = 0; i < hits.length; i++) {
+      var h = hits[i];
+      var isMiss = h.rank === 0;
+      rows += '<tr>' +
+        '<td>' + h.draw_no + '</td>' +
+        '<td>' + h.match_count + '</td>' +
+        '<td>' + (h.bonus_match ? 'O' : 'X') + '</td>' +
+        '<td' + (isMiss ? ' class="rank-miss"' : '') + '>' + rankLabel(h.rank) + '</td>' +
+        '</tr>';
+    }
+    return '<table class="game-table">' +
+      '<thead><tr><th>회차</th><th>일치 개수</th><th>보너스 일치</th><th>등수</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>';
+  }
+
+  function fetchJson(url, options) {
+    options = options || {};
+    return fetch(apiBase + url, options).then(function (res) {
+      if (!res.ok) {
+        return res.text().then(function (body) {
+          throw new Error(body || (res.status + ' ' + res.statusText));
+        });
+      }
+      return res.json();
+    });
+  }
+
+  function loadDraws() {
+    fetchJson('/api/draws?start_no=1&end_no=1')
+      .then(function (data) {
+        drawsEl.textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(function (err) {
+        setStatus(err.message);
+        drawsEl.textContent = '회차 조회 실패';
       });
-      setStatus(`동기화 완료: status=${data.status}, inserted=${data.inserted}, updated=${data.updated}, skipped=${data.skipped}`);
-      await loadDraws();
-    } catch (err) {
-      setStatus(`동기화 실패: ${err.message}`);
-    }
   }
 
-  async function runGames() {
-    const gameCount = parseInt(document.getElementById('gameCount').value || '0', 10);
-    const strategy = document.getElementById('strategy').value;
-    const seedRaw = document.getElementById('seed').value;
-    const body = { game_count: gameCount, strategy };
-    if (seedRaw.trim()) body.seed = parseInt(seedRaw, 10);
+  function syncDraws() {
+    setStatus('동기화 실행 중...');
+    fetchJson('/api/sync', {
+      method: 'POST'
+    })
+      .then(function (data) {
+        setStatus('동기화 완료: status=' + data.status + ', inserted=' + data.inserted + ', updated=' + data.updated + ', skipped=' + data.skipped);
+        loadDraws();
+      })
+      .catch(function (err) {
+        setStatus('동기화 실패: ' + err.message);
+      });
+  }
 
-    if (!Number.isFinite(gameCount) || gameCount < 1) {
+  function runGames() {
+    var gameCount = parseInt(document.getElementById('gameCount').value || '0', 10);
+    var strategy = document.getElementById('strategy').value;
+    var seedRaw = document.getElementById('seed').value;
+    var body = { game_count: gameCount, strategy: strategy };
+    if (seedRaw.trim()) {
+      body.seed = parseInt(seedRaw, 10);
+    }
+
+    if (isNaN(gameCount) || gameCount < 1) {
       setStatus('게임 수는 1 이상이어야 합니다');
       return;
     }
 
-    try {
-      setStatus('생성 중...');
-      const data = await fetchJson('/api/games', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+    setStatus('생성 중...');
+    fetchJson('/api/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then(function (data) {
+        var html = '';
+        html += '<span class="chip">실행 ID: ' + data.run_id + '</span>';
+        html += '<span class="chip">전략: ' + data.strategy + '</span>';
+        html += '<span class="chip">게임 수: ' + data.game_count + '</span>';
+        html += '<span class="chip">평가 기준 회차: ' + data.evaluated_until + '</span>';
+        summaryEl.innerHTML = html;
+
+        var rows = '';
+        for (var i = 0; i < data.games.length; i++) {
+          var g = data.games[i];
+          var dist = formatDistribution(g.rank_distribution);
+          var detailId = 'game-detail-' + i;
+          var detailRows = renderGameDetailHits(g.hits);
+
+          rows += '<tr>' +
+            '<td><button class="toggle-btn game-toggle" data-target="' + detailId + '" aria-expanded="false">▶</button></td>' +
+            '<td>' + (g.game_index + 1) + '</td>' +
+            '<td>' + fmtNums(g.numbers) + '</td>' +
+            '<td>' + dist + '</td>' +
+            '<td>' + g.total_hits + '</td>' +
+            '</tr>';
+          rows += '<tr id="' + detailId + '" class="game-detail-row" style="display:none;">' +
+            '<td colspan="5">' +
+            '<div class="game-detail">' + detailRows + '</div>' +
+            '</td>' +
+            '</tr>';
+        }
+
+        resultEl.innerHTML = '<table class="game-table"><thead><tr><th></th><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+        var toggles = document.getElementsByClassName('game-toggle');
+        for (var t = 0; t < toggles.length; t++) {
+          toggles[t].addEventListener('click', function () {
+            var targetId = this.getAttribute('data-target');
+            var row = document.getElementById(targetId);
+            if (!row) {
+              return;
+            }
+            var panel = row.querySelector('.game-detail');
+            var expanded = this.getAttribute('aria-expanded') === 'true';
+
+            if (expanded) {
+              row.style.display = 'none';
+              panel.style.display = 'none';
+              this.setAttribute('aria-expanded', 'false');
+              this.textContent = '▶';
+            } else {
+              row.style.display = 'table-row';
+              panel.style.display = 'block';
+              this.setAttribute('aria-expanded', 'true');
+              this.textContent = '▼';
+            }
+          });
+        }
+        setStatus('완료');
+      })
+      .catch(function (err) {
+        setStatus('게임 생성 실패: ' + err.message);
+        resultEl.textContent = '';
       });
-
-      summaryEl.innerHTML = '';
-      summaryEl.insertAdjacentHTML('beforeend', `<span class="chip">실행 ID: ${data.run_id}</span>`);
-      summaryEl.insertAdjacentHTML('beforeend', `<span class="chip">전략: ${data.strategy}</span>`);
-      summaryEl.insertAdjacentHTML('beforeend', `<span class="chip">게임 수: ${data.game_count}</span>`);
-      summaryEl.insertAdjacentHTML('beforeend', `<span class="chip">평가 기준 회차: ${data.evaluated_until}</span>`);
-
-      const rows = data.games.map(g => `
-        <tr>
-          <td>${g.game_index + 1}</td>
-          <td>${fmtNums(g.numbers)}</td>
-          <td>${Object.entries(g.rank_distribution || {}).map(([k,v]) => `${k}등:${v}`).join(', ') || '0'}</td>
-          <td>${g.total_hits}</td>
-        </tr>
-      `).join('');
-
-      resultEl.innerHTML = `<table><thead><tr><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>${rows}</tbody></table>`;
-      setStatus('완료');
-    } catch (err) {
-      setStatus(`게임 생성 실패: ${err.message}`);
-      resultEl.textContent = '';
-    }
   }
 
   document.getElementById('runBtn').addEventListener('click', runGames);
