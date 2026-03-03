@@ -5,220 +5,727 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lotto 전략 생성기</title>
   <style>
+    :root {
+      --bg: #f2f4ea;
+      --bg-alt: #e3efe9;
+      --panel: rgba(255, 255, 255, 0.86);
+      --panel-strong: #ffffff;
+      --line: #c8d8cf;
+      --line-strong: #aac3b7;
+      --text: #1b282d;
+      --text-soft: #5b7078;
+      --accent: #0f766e;
+      --accent-strong: #0b5b55;
+      --accent-soft: #d2ece8;
+      --warm: #f08a52;
+      --warm-soft: #ffe0cf;
+      --danger: #bb3d34;
+      --danger-soft: #ffdcd6;
+      --ok: #1f7f53;
+      --ok-soft: #d7f2e1;
+      --shadow: 0 14px 36px rgba(25, 45, 52, 0.14);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
       margin: 0;
-      background: linear-gradient(135deg, #f7f8fc, #e3ecff 60%, #dff4ff);
-      color: #1b2738;
+      font-family: "SUIT Variable", "Pretendard Variable", "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 12%, rgba(15, 118, 110, 0.18), transparent 38%),
+        radial-gradient(circle at 88% 16%, rgba(240, 138, 82, 0.2), transparent 35%),
+        radial-gradient(circle at 76% 84%, rgba(36, 129, 173, 0.16), transparent 34%),
+        linear-gradient(165deg, var(--bg), var(--bg-alt));
+      min-height: 100vh;
     }
+
     .wrap {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 24px;
+      width: min(1160px, 100% - 32px);
+      margin: 28px auto 42px;
+      display: grid;
+      gap: 16px;
+      animation: rise-in 520ms ease-out;
     }
-    h1 {
-      margin: 10px 0 18px;
-    }
+
     .panel {
-      background: rgba(255, 255, 255, 0.82);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 12px 30px rgba(45, 77, 130, 0.13);
-      border: 1px solid rgba(76, 108, 255, 0.16);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow);
+      padding: 20px;
     }
-    label {
+
+    .hero {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      position: relative;
+      overflow: hidden;
+      border-color: var(--line-strong);
+      background:
+        linear-gradient(125deg, rgba(255, 255, 255, 0.95), rgba(229, 247, 242, 0.88));
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 999px;
+      right: -46px;
+      top: -54px;
+      background: radial-gradient(circle, rgba(15, 118, 110, 0.22), transparent 72%);
+      pointer-events: none;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.8vw, 2.15rem);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.08rem;
+      letter-spacing: -0.01em;
+    }
+
+    .intro {
+      margin: 10px 0 0;
+      color: var(--text-soft);
+      line-height: 1.5;
+      max-width: 740px;
+      font-size: 0.95rem;
+    }
+
+    #status {
+      margin: 0;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-right: 12px;
-      margin-bottom: 10px;
-    }
-    input, select {
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid #9fb4db;
-    }
-    button {
-      background: linear-gradient(90deg, #5b70ff, #2fb6ff);
-      border: 0;
-      color: white;
-      border-radius: 10px;
-      padding: 10px 14px;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #f4f8f6;
+      color: #2f4b50;
       font-weight: 700;
-      cursor: pointer;
+      font-size: 0.85rem;
+      white-space: nowrap;
     }
-    .chips {
+
+    #status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #5d7d82;
+      box-shadow: 0 0 0 4px rgba(93, 125, 130, 0.2);
+    }
+
+    #status[data-tone="running"] {
+      background: #e8f6f5;
+      border-color: #abd7d3;
+      color: var(--accent-strong);
+    }
+
+    #status[data-tone="running"]::before {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.22);
+    }
+
+    #status[data-tone="ok"] {
+      background: var(--ok-soft);
+      border-color: #9fd5bb;
+      color: #115837;
+    }
+
+    #status[data-tone="ok"]::before {
+      background: var(--ok);
+      box-shadow: 0 0 0 4px rgba(31, 127, 83, 0.2);
+    }
+
+    #status[data-tone="error"] {
+      background: var(--danger-soft);
+      border-color: #efb6af;
+      color: #7a2a24;
+    }
+
+    #status[data-tone="error"]::before {
+      background: var(--danger);
+      box-shadow: 0 0 0 4px rgba(187, 61, 52, 0.2);
+    }
+
+    .controls {
+      display: grid;
+      gap: 14px;
+    }
+
+    .control-top {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      color: var(--text-soft);
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+
+    .field input {
+      height: 42px;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.16);
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      height: 42px;
+      border-radius: 11px;
+      border: 1px solid transparent;
+      padding: 0 14px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: saturate(1.02);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(110deg, var(--accent), #18a59a);
+      box-shadow: 0 10px 18px rgba(15, 118, 110, 0.28);
+    }
+
+    .btn-secondary {
+      color: #6a340f;
+      background: linear-gradient(110deg, #ffd7c3, #ffd2ab);
+      border-color: #f4bc97;
+    }
+
+    .options-row {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
     }
-    .chip {
-      background: #edf2ff;
-      border: 1px solid #b5c4ff;
+
+    .option-box {
+      margin: 0;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
       border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 13px;
+      border: 1px solid var(--line);
+      background: #f7fbf9;
+      color: #355158;
+      font-size: 0.83rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 140ms ease, background-color 140ms ease, transform 120ms ease;
     }
-    .muted {
-      color: #5b6677;
-      margin: 8px 0 0;
+
+    .option-box:hover {
+      transform: translateY(-1px);
+      border-color: #afc8bc;
     }
-    pre {
-      background: #0b1020;
-      color: #d7e2ff;
-      border-radius: 12px;
+
+    .option-box input {
+      margin: 0;
+      accent-color: var(--accent);
+      flex: 0 0 auto;
+    }
+
+    .option-label,
+    .strategy-box-content {
+      display: block;
+      line-height: 1.25;
+    }
+
+    .option-box input:checked + .option-label {
+      color: #19444b;
+    }
+
+    .strategy-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .strategy-box {
+      border-radius: var(--radius-sm);
+      align-items: flex-start;
       padding: 12px;
-      overflow: auto;
-    }
-    table {
+      background: #f6fbf9;
       width: 100%;
-      border-collapse: collapse;
     }
-    th,
-    td {
-      border-bottom: 1px solid #d8e1f0;
-      padding: 8px;
-      text-align: left;
-      vertical-align: top;
-      font-size: 14px;
+
+    .strategy-box input {
+      margin-top: 2px;
     }
-    th {
-      text-align: center;
-      color: #26344b;
-      background: #eef3ff;
+
+    .strategy-title {
+      display: block;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #193d42;
+      margin-bottom: 2px;
     }
-    .small {
-      color: #5f6f8a;
-      font-size: 12px;
+
+    .strategy-desc {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      line-height: 1.35;
     }
-    .game-table th,
-    .game-table td {
-      text-align: center;
+
+    .strategy-box input:checked + .strategy-box-content {
+      color: #0e5550;
     }
-    .game-table td:nth-child(2) {
-      text-align: left;
+
+    .strategy-box input:checked + .strategy-box-content .strategy-title {
+      color: var(--accent-strong);
     }
-    .toggle-btn {
-      width: 28px;
-      height: 28px;
-      padding: 0;
+
+    .strategy-box:has(input:checked) {
+      background: #def2ed;
+      border-color: #92cdbf;
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 16px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #afc9be;
       border-radius: 999px;
-      background: #dbe6ff;
-      color: #1f3e7a;
-      border: 1px solid #b2c4ff;
+      padding: 6px 11px;
+      font-size: 0.82rem;
+      background: #edf8f4;
+      color: #25474d;
       font-weight: 700;
-      margin-right: 8px;
     }
-    .toggle-btn:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
+
+    .chip-muted {
+      border-color: #c7d7cf;
+      color: #5c7379;
+      background: #f3f7f5;
     }
-    .game-row td:first-child {
-      text-align: center;
+
+    pre {
+      margin: 12px 0 0;
+      background: #102229;
+      color: #c8f0f5;
+      border: 1px solid #21434e;
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      overflow: auto;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      min-height: 148px;
     }
-    .game-detail-row td {
-      padding: 0;
-    }
-    .game-detail {
-      display: none;
-      padding: 12px 10px;
-      background: #f6f8ff;
-      border: 1px solid #d6e0fa;
-      border-top: 0;
-    }
-    .rank-miss {
-      color: #7a8799;
-    }
+
     .section-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
     }
-    .section-head h2 {
-      margin: 0;
-    }
+
     .inline-toggle {
-      width: 28px;
-      height: 28px;
-      padding: 0;
+      width: 36px;
+      height: 36px;
       border-radius: 999px;
-      background: #dbe6ff;
-      color: #1f3e7a;
-      border: 1px solid #b2c4ff;
-      font-weight: 700;
-      margin-right: 0;
+      border: 1px solid #a7c3b7;
+      background: #e8f4ef;
+      color: #16434a;
+      font-weight: 900;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0;
     }
+
+    .muted {
+      color: var(--text-soft);
+      font-size: 0.86rem;
+      margin: 10px 0 0;
+      line-height: 1.45;
+    }
+
     .list-wrap {
       margin-top: 12px;
       display: none;
     }
-    .draw-table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      background: #f8faff;
-    }
-    .draw-table th,
-    .draw-table td {
-      text-align: center;
-      word-break: break-all;
-    }
-    .draw-table th:nth-child(3),
-    .draw-table td:nth-child(3),
-    .draw-table th:nth-child(4),
-    .draw-table td:nth-child(4),
-    .draw-table th:nth-child(5),
-    .draw-table td:nth-child(5) {
-      text-align: left;
-    }
+
     .scroll-table {
       max-height: 420px;
       overflow: auto;
-      border: 1px solid #d8e1f0;
-      border-radius: 10px;
+      border: 1px solid #c8d8cf;
+      border-radius: var(--radius-sm);
+      background: #f6faf8;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #d6e2db;
+      padding: 10px 8px;
+      vertical-align: top;
+      font-size: 0.84rem;
+      line-height: 1.4;
+    }
+
+    thead th {
+      background: #e7f3ee;
+      color: #1c4449;
+      text-align: center;
+      font-weight: 800;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .draw-table td,
+    .draw-table th,
+    .result-table td,
+    .result-table th,
+    .detail-table td,
+    .detail-table th {
+      text-align: center;
+    }
+
+    .draw-table td:nth-child(3),
+    .detail-table td:nth-child(2),
+    .detail-table td:nth-child(5) {
+      text-align: left;
+    }
+
+    .num-balls {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .num-ball {
+      min-width: 26px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #ecfaf7, #d4efea);
+      border: 1px solid #9fc9bb;
+      color: #164449;
+      font-weight: 800;
+      font-size: 0.79rem;
+      padding: 0 8px;
+    }
+
+    .num-ball.bonus {
+      background: linear-gradient(145deg, #ffe8d8, #ffd8ba);
+      border-color: #f3bb91;
+      color: #7d3f17;
+    }
+
+    .num-ball.sm {
+      min-width: 22px;
+      height: 22px;
+      font-size: 0.74rem;
+      padding: 0 6px;
+    }
+
+    .dist-badges {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .dist-badge {
+      border: 1px solid #c2d4cc;
+      background: #f2f8f5;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.73rem;
+      font-weight: 700;
+      color: #355158;
+      white-space: nowrap;
+    }
+
+    .toggle-btn {
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border-radius: 999px;
+      background: #e8f3ef;
+      color: #1a4950;
+      border: 1px solid #afc9be;
+      font-weight: 900;
+      margin-right: 0;
+      box-shadow: none;
+    }
+
+    .toggle-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .game-detail-row td {
+      padding: 0;
+      border-bottom: 0;
+    }
+
+    .game-detail {
+      display: none;
+      padding: 12px;
+      background: #f6fbf8;
+      border-top: 1px solid #d0dfd7;
+    }
+
+    .empty {
+      margin: 0;
+      padding: 14px;
+      border: 1px dashed #bfd2c8;
+      border-radius: var(--radius-sm);
+      color: var(--text-soft);
+      text-align: center;
+      background: #f8fcfa;
+      font-size: 0.86rem;
+    }
+
+    .results-wrap {
+      margin-top: 12px;
+    }
+
+    .small {
+      color: var(--text-soft);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    @keyframes rise-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .control-top {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .panel-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .wrap {
+        width: min(1160px, 100% - 20px);
+        margin: 16px auto 22px;
+      }
+
+      .panel {
+        padding: 14px;
+        border-radius: 18px;
+      }
+
+      .hero {
+        flex-direction: column;
+      }
+
+      .hero::after {
+        width: 140px;
+        height: 140px;
+        right: -52px;
+      }
+
+      #status {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .control-top,
+      .btn-row,
+      .strategy-row {
+        grid-template-columns: 1fr;
+      }
+
+      .option-box {
+        width: 100%;
+        border-radius: 12px;
+      }
+
+      th,
+      td {
+        font-size: 0.78rem;
+        padding: 9px 6px;
+      }
+
+      .num-ball {
+        min-width: 23px;
+        height: 23px;
+        font-size: 0.72rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>로또 전략 게임 생성기</h1>
-    <div class="panel">
-      <p class="muted">지정한 회차까지 저장된 결과를 기준으로 과거 당첨 결과를 조회해 게임별 등수 분포를 바로 표시합니다.</p>
+  <main class="wrap">
+    <header class="panel hero">
       <div>
-        <label>
+        <h1>로또 전략 게임 생성기</h1>
+        <p class="intro">저장된 전체 회차를 기준으로 전략별 번호를 생성하고, 게임별 1~5등 분포를 즉시 비교할 수 있는 실험 대시보드입니다.</p>
+      </div>
+      <p id="status" data-tone="running">준비됨</p>
+    </header>
+
+    <section class="panel controls">
+      <div class="control-top">
+        <label class="field">
           게임 수
           <input id="gameCount" type="number" min="1" value="5" />
         </label>
-        <label>
-          전략
-          <select id="strategy">
-            <option value="low_overlap_random">low_overlap_random</option>
-            <option value="uniform_random">uniform_random</option>
-          </select>
-        </label>
-        <label>
+        <label class="field">
           시드
           <input id="seed" type="number" placeholder="선택: 1.." />
         </label>
-        <button id="runBtn">게임 생성</button>
-        <button id="syncBtn">동기화 실행</button>
+        <div class="btn-row">
+          <button id="runBtn" class="btn-primary">게임 생성</button>
+          <button id="syncBtn" class="btn-secondary">동기화 실행</button>
+        </div>
       </div>
-      <p id="status" class="muted">준비됨</p>
+
+      <div class="options-row strategy-row">
+        <label class="option-box strategy-box">
+          <input class="strategy-radio" id="strategyLowOverlap" name="strategy" type="radio" data-strategy="low_overlap_random" checked />
+          <span class="strategy-box-content">
+            <span class="strategy-title">중복 최소 랜덤</span>
+            <span class="strategy-desc">여러 게임의 숫자 중복을 최대한 줄여 고르게 분산합니다.</span>
+          </span>
+        </label>
+        <label class="option-box strategy-box">
+          <input class="strategy-radio" id="strategyUniform" name="strategy" type="radio" data-strategy="uniform_random" />
+          <span class="strategy-box-content">
+            <span class="strategy-title">균등 랜덤</span>
+            <span class="strategy-desc">각 게임을 완전 무작위로 생성하는 기본 랜덤 방식입니다.</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="options-row">
+        <label class="option-box">
+          <input id="optAvoidBirthday" type="checkbox" />
+          <span class="option-label">생일 편향 회피(32~45 비중 강화)</span>
+        </label>
+        <label class="option-box">
+          <input id="optIncludeConsecutive" type="checkbox" />
+          <span class="option-label">연속 번호 1쌍 이상 포함</span>
+        </label>
+        <label class="option-box">
+          <input id="optAvoidPopular" type="checkbox" />
+          <span class="option-label">인기 숫자(7) 제외</span>
+        </label>
+        <label class="option-box">
+          <input id="optBalancedOddEven" type="checkbox" />
+          <span class="option-label">홀짝 균형(2:4~4:2)</span>
+        </label>
+        <label class="option-box">
+          <input id="optBalancedHighLow" type="checkbox" />
+          <span class="option-label">고저 균형(1~22 / 23~45)</span>
+        </label>
+        <label class="option-box">
+          <input id="optSumBand" type="checkbox" />
+          <span class="option-label">번호합 100~170 구간</span>
+        </label>
+        <label class="option-box">
+          <input id="optAvoidSameLastDigitCluster" type="checkbox" />
+          <span class="option-label">끝수(일의 자리) 쏠림 방지</span>
+        </label>
+        <label class="option-box">
+          <input id="optAvoidArithmeticSequence" type="checkbox" />
+          <span class="option-label">등차수열 패턴 제외</span>
+        </label>
+      </div>
+    </section>
+
+    <div class="panel-grid">
+      <section class="panel">
+        <h2>요약</h2>
+        <div id="summary" class="chips"></div>
+      </section>
+
+      <section class="panel">
+        <h2>최근 동기화 / 회차</h2>
+        <pre id="draws">loading...</pre>
+      </section>
     </div>
 
-    <div class="panel">
-      <h2>요약</h2>
-      <div id="summary" class="chips"></div>
-    </div>
-
-    <div class="panel">
-      <h2>최근 동기화 / 회차</h2>
-      <pre id="draws">loading...</pre>
-    </div>
-
-    <div class="panel">
+    <section class="panel">
       <div class="section-head">
         <h2>모든 당첨번호</h2>
         <button id="allDrawsToggle" class="inline-toggle" aria-expanded="false">▶</button>
@@ -227,13 +734,15 @@
       <div id="allDrawsWrap" class="list-wrap">
         <div id="allDraws" class="small">로딩 중...</div>
       </div>
-    </div>
+    </section>
 
-    <div class="panel">
+    <section class="panel">
       <h2>생성 결과</h2>
-      <div id="results"></div>
-    </div>
-  </div>
+      <div id="results" class="results-wrap">
+        <p class="empty">아직 생성된 게임이 없습니다.</p>
+      </div>
+    </section>
+  </main>
 
 <script>
   var apiBase = '';
@@ -254,13 +763,58 @@
   var resultEl = document.getElementById('results');
   var allDrawsLoaded = false;
   var allDrawsCount = 0;
+  var strategyLabels = {
+    low_overlap_random: '중복 최소 랜덤',
+    uniform_random: '균등 랜덤'
+  };
+  var strategyOptionLabels = {
+    avoid_birthday_bias: '생일 편향 회피(32~45 비중 강화)',
+    include_consecutive_pair: '연속 번호 1쌍 이상 포함',
+    avoid_popular_numbers: '인기 숫자(7) 제외',
+    balanced_odd_even: '홀짝 균형(2:4~4:2)',
+    balanced_high_low: '고저 균형(1~22 / 23~45)',
+    sum_band_100_170: '번호합 100~170 구간',
+    avoid_same_last_digit_cluster: '끝수(일의 자리) 쏠림 방지',
+    avoid_arithmetic_sequence: '등차수열 패턴 제외'
+  };
+  var strategyOptionKeys = [
+    'avoid_birthday_bias',
+    'include_consecutive_pair',
+    'avoid_popular_numbers',
+    'balanced_odd_even',
+    'balanced_high_low',
+    'sum_band_100_170',
+    'avoid_same_last_digit_cluster',
+    'avoid_arithmetic_sequence'
+  ];
 
-  function setStatus(msg) {
+  function setStatus(msg, tone) {
     statusEl.textContent = msg;
+    statusEl.setAttribute('data-tone', tone || 'running');
   }
 
-  function fmtNums(nums) {
-    return nums.join(', ');
+  function setSummaryEmpty() {
+    summaryEl.innerHTML = '<span class="chip chip-muted">아직 실행된 결과가 없습니다.</span>';
+  }
+
+  function renderNumberBalls(nums, extraClass, bonus) {
+    var hasNums = nums && nums.length > 0;
+    var hasBonus = typeof bonus === 'number';
+    if (!hasNums && !hasBonus) {
+      return '-';
+    }
+    var cls = extraClass ? ' ' + extraClass : '';
+    var out = '<span class="num-balls">';
+    if (hasNums) {
+      for (var i = 0; i < nums.length; i++) {
+        out += '<span class="num-ball' + cls + '">' + nums[i] + '</span>';
+      }
+    }
+    if (hasBonus) {
+      out += '<span class="num-ball bonus' + cls + '">' + bonus + '</span>';
+    }
+    out += '</span>';
+    return out;
   }
 
   function rankLabel(rank) {
@@ -277,32 +831,78 @@
     return nums.join(', ');
   }
 
-  function formatDistribution(dist) {
+  function renderDistribution(dist) {
     var labels = [1, 2, 3, 4, 5];
-    var out = [];
+    var out = '<div class="dist-badges">';
     for (var i = 0; i < labels.length; i++) {
       var rank = labels[i];
       var key = String(rank);
       var value = dist && Object.prototype.hasOwnProperty.call(dist, key) ? dist[key] : 0;
-      out.push(key + '등:' + value);
+      out += '<span class="dist-badge">' + key + '등 ' + value + '</span>';
     }
-    return out.join(', ');
+    out += '</div>';
+    return out;
+  }
+
+  function formatStrategyLabel(strategy) {
+    if (!strategy) {
+      return '-';
+    }
+    if (Object.prototype.hasOwnProperty.call(strategyLabels, strategy)) {
+      return strategyLabels[strategy] + ' (' + strategy + ')';
+    }
+    return strategy;
+  }
+
+  function getSelectedStrategy() {
+    var selected = document.querySelector('input[name="strategy"]:checked');
+    if (!selected) {
+      return null;
+    }
+    return selected.getAttribute('data-strategy');
+  }
+
+  function collectStrategyOptions() {
+    return {
+      avoid_birthday_bias: document.getElementById('optAvoidBirthday').checked,
+      include_consecutive_pair: document.getElementById('optIncludeConsecutive').checked,
+      avoid_popular_numbers: document.getElementById('optAvoidPopular').checked,
+      balanced_odd_even: document.getElementById('optBalancedOddEven').checked,
+      balanced_high_low: document.getElementById('optBalancedHighLow').checked,
+      sum_band_100_170: document.getElementById('optSumBand').checked,
+      avoid_same_last_digit_cluster: document.getElementById('optAvoidSameLastDigitCluster').checked,
+      avoid_arithmetic_sequence: document.getElementById('optAvoidArithmeticSequence').checked
+    };
+  }
+
+  function formatStrategyOptions(options) {
+    var active = [];
+    var opts = options || {};
+    for (var i = 0; i < strategyOptionKeys.length; i++) {
+      var key = strategyOptionKeys[i];
+      if (opts[key]) {
+        active.push(strategyOptionLabels[key]);
+      }
+    }
+    if (active.length === 0) {
+      return '없음';
+    }
+    return active.join(' + ');
   }
 
   function renderAllDraws(draws) {
     if (!draws || draws.length === 0) {
-      return '<p class="small" style="margin:0;">저장된 당첨번호가 없습니다.</p>';
+      return '<p class="empty">저장된 당첨번호가 없습니다.</p>';
     }
 
     var rows = '';
     for (var i = draws.length - 1; i >= 0; i--) {
       var d = draws[i];
-      var numbers = formatNumberList(d.numbers);
       rows += '<tr>' +
         '<td>' + d.draw_no + '</td>' +
         '<td>' + d.draw_date + '</td>' +
-        '<td>' + numbers + '</td>' +
-        '<td>' + d.bonus + '</td>' +
+        '<td>' + renderNumberBalls(d.numbers, 'sm') + '</td>' +
+        '<td>' + renderNumberBalls([], 'sm', d.bonus) + '</td>' +
         '</tr>';
     }
 
@@ -316,21 +916,21 @@
 
   function renderGameDetailHits(hits) {
     if (!hits || hits.length === 0) {
-      return '';
+      return '<p class="empty">당첨 내역이 없습니다.</p>';
     }
     var rows = '';
     for (var i = 0; i < hits.length; i++) {
       var h = hits[i];
       rows += '<tr>' +
         '<td>' + h.draw_no + '</td>' +
-        '<td>' + formatNumberList(h.draw_numbers) + '</td>' +
+        '<td>' + renderNumberBalls(h.draw_numbers, 'sm') + '</td>' +
         '<td>' + h.match_count + '</td>' +
         '<td>' + (h.bonus_match ? 'O' : 'X') + '</td>' +
-        '<td>' + formatNumberList(h.matched_numbers) + '</td>' +
+        '<td>' + renderNumberBalls(h.matched_numbers, 'sm') + '</td>' +
         '<td>' + rankLabel(h.rank) + '</td>' +
         '</tr>';
     }
-    return '<table class="game-table">' +
+    return '<table class="detail-table">' +
       '<thead><tr><th>회차</th><th>당첨번호(보너스 제외)</th><th>일치 개수</th><th>보너스</th><th>당첨된 번호</th><th>등수</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>';
   }
@@ -361,33 +961,33 @@
             latest_draw_no: latest.draw_no,
             latest_numbers: latest.numbers,
             bonus: latest.bonus,
-            draw_date: latest.draw_date,
+            draw_date: latest.draw_date
           },
           null,
-          2,
+          2
         );
       })
       .catch(function (err) {
-        setStatus(err.message);
+        setStatus('회차 조회 실패: ' + err.message, 'error');
         drawsEl.textContent = '회차 조회 실패';
       });
   }
 
   function syncDraws() {
-    setStatus('동기화 실행 중...');
+    setStatus('동기화 실행 중...', 'running');
     allDrawsLoaded = false;
     fetchJson('/api/sync', {
       method: 'POST'
     })
       .then(function (data) {
-        setStatus('동기화 완료: status=' + data.status + ', inserted=' + data.inserted + ', updated=' + data.updated + ', skipped=' + data.skipped);
+        setStatus('동기화 완료: inserted=' + data.inserted + ', updated=' + data.updated + ', skipped=' + data.skipped, 'ok');
         loadDraws();
-        if (allDrawsWrapEl.style.display !== 'none') {
+        if (allDrawsToggleEl.getAttribute('aria-expanded') === 'true') {
           loadAllDraws();
         }
       })
       .catch(function (err) {
-        setStatus('동기화 실패: ' + err.message);
+        setStatus('동기화 실패: ' + err.message, 'error');
       });
   }
 
@@ -397,59 +997,65 @@
       .then(function (data) {
         allDrawsCount = data.count || (data.draws ? data.draws.length : 0);
         allDrawsEl.innerHTML = renderAllDraws(data.draws);
-        allDrawsStatusEl.textContent = '총 ' + (data.count || (data.draws && data.draws.length)) + '회차가 저장되어 있습니다.';
+        allDrawsStatusEl.textContent = '총 ' + allDrawsCount + '회차가 저장되어 있습니다.';
         allDrawsLoaded = true;
       })
       .catch(function (err) {
-        allDrawsEl.textContent = '로딩 실패';
+        allDrawsEl.innerHTML = '<p class="empty">로딩 실패</p>';
         allDrawsStatusEl.textContent = '당첨번호 로딩 실패: ' + err.message;
       });
   }
 
   function runGames() {
     var gameCount = parseInt(document.getElementById('gameCount').value || '0', 10);
-    var strategy = document.getElementById('strategy').value;
+    var strategy = getSelectedStrategy();
     var seedRaw = document.getElementById('seed').value;
-    var body = { game_count: gameCount, strategy: strategy };
+    var options = collectStrategyOptions();
+    var body = { game_count: gameCount, strategy: strategy, options: options };
     if (seedRaw.trim()) {
       body.seed = parseInt(seedRaw, 10);
     }
 
     if (isNaN(gameCount) || gameCount < 1) {
-      setStatus('게임 수는 1 이상이어야 합니다');
+      setStatus('게임 수는 1 이상이어야 합니다', 'error');
+      return;
+    }
+    if (!strategy) {
+      setStatus('전략을 1개 이상 선택해야 합니다', 'error');
       return;
     }
 
-    setStatus('생성 중...');
+    setStatus('게임 생성 중...', 'running');
     fetchJson('/api/games', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     })
       .then(function (data) {
         var html = '';
-        html += '<span class="chip">실행 ID: ' + data.run_id + '</span>';
-        html += '<span class="chip">전략: ' + data.strategy + '</span>';
-        html += '<span class="chip">게임 수: ' + data.game_count + '</span>';
-        html += '<span class="chip">평가 기준 회차: ' + data.evaluated_until + '</span>';
+        html += '<span class="chip">실행 ID ' + data.run_id + '</span>';
+        html += '<span class="chip">전략 ' + formatStrategyLabel(data.strategy) + '</span>';
+        html += '<span class="chip">옵션 ' + formatStrategyOptions(data.strategy_options) + '</span>';
+        html += '<span class="chip">게임 수 ' + data.game_count + '</span>';
+        html += '<span class="chip">평가 기준 회차 ' + data.evaluated_until + '</span>';
         summaryEl.innerHTML = html;
 
         var rows = '';
         for (var i = 0; i < data.games.length; i++) {
           var g = data.games[i];
-          var dist = formatDistribution(g.rank_distribution);
+          var dist = renderDistribution(g.rank_distribution);
           var detailId = 'game-detail-' + i;
           var hasHits = g.hits && g.hits.length > 0;
-          var detailRows = hasHits ? renderGameDetailHits(g.hits) : '<p class="small" style="margin:0;">당첨 내역이 없습니다.</p>';
+          var detailRows = renderGameDetailHits(g.hits);
           var toggleLabel = hasHits ? '▶' : '－';
           var toggleTitle = hasHits ? '당첨 내역 보기' : '당첨 내역 없음';
           var disabledAttr = hasHits ? '' : ' disabled';
           var toggleCell = '<button class="toggle-btn game-toggle" data-target="' + detailId + '" aria-expanded="false" title="' + toggleTitle + '"' + disabledAttr + '>' + toggleLabel + '</button>';
 
-          rows += '<tr>' +
+          rows += '<tr class="game-row">' +
             '<td>' + toggleCell + '</td>' +
             '<td>' + (g.game_index + 1) + '</td>' +
-            '<td>' + fmtNums(g.numbers) + '</td>' +
+            '<td>' + renderNumberBalls(g.numbers) + '</td>' +
             '<td>' + dist + '</td>' +
             '<td>' + g.total_hits + '</td>' +
             '</tr>';
@@ -460,7 +1066,7 @@
             '</tr>';
         }
 
-        resultEl.innerHTML = '<table class="game-table"><thead><tr><th></th><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>' + rows + '</tbody></table>';
+        resultEl.innerHTML = '<div class="scroll-table"><table class="result-table"><thead><tr><th></th><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 
         var toggles = document.getElementsByClassName('game-toggle');
         for (var t = 0; t < toggles.length; t++) {
@@ -489,11 +1095,11 @@
             }
           });
         }
-        setStatus('완료');
+        setStatus('게임 생성 완료', 'ok');
       })
       .catch(function (err) {
-        setStatus('게임 생성 실패: ' + err.message);
-        resultEl.textContent = '';
+        setStatus('게임 생성 실패: ' + err.message, 'error');
+        resultEl.innerHTML = '<p class="empty">게임 생성에 실패했습니다.</p>';
       });
   }
 
@@ -519,6 +1125,7 @@
     }
   });
 
+  setSummaryEmpty();
   loadDraws();
 </script>
 </body>
