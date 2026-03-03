@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime
+import json
 import os
 from pathlib import Path
 from typing import Optional
@@ -10,9 +12,15 @@ from fastapi.responses import FileResponse
 
 from app.config import Settings
 from app.db import Database
-from app.schemas import GenerateRequest, GameCreateResponse, SyncResponse
+from app.schemas import (
+    GenerateRequest,
+    GameCreateResponse,
+    NumberCheckRequest,
+    NumberCheckResponse,
+    SyncResponse,
+)
 from app.services.crawler import LotteryCrawler
-from app.services.strategies import STRATEGIES
+from app.services.strategies import STRATEGIES, STRATEGY_DESCRIPTIONS, STRATEGY_LABELS, STRATEGY_OPTION_LABELS, generate_games_with_options
 from app.services.sync_service import SyncService
 from app.services.evaluator import evaluate_games as _evaluate
 
@@ -51,6 +59,20 @@ def create_app() -> FastAPI:
             headers=ui_headers,
         )
 
+    def format_draw_date(draw_date: str) -> str:
+        if not draw_date:
+            return ""
+
+        text = "".join(ch for ch in str(draw_date) if ch.isdigit())
+        if len(text) == 8:
+            try:
+                dt = datetime.date.fromisoformat(f"{text[:4]}-{text[4:6]}-{text[6:8]}")
+                return dt.isoformat()
+            except ValueError:
+                return f"{text[:4]}-{text[4:6]}-{text[6:8]}"
+
+        return str(draw_date)
+
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
@@ -67,9 +89,13 @@ def create_app() -> FastAPI:
                 "/api/draws",
                 "/api/games",
                 "/api/games/{id}",
+                "/api/number-check",
                 "/api/sync/runs",
             ],
             "strategies": list(STRATEGIES.keys()),
+            "strategy_labels": STRATEGY_LABELS,
+            "strategy_descriptions": STRATEGY_DESCRIPTIONS,
+            "strategy_options": STRATEGY_OPTION_LABELS,
         }
 
     @app.get("/")
@@ -126,7 +152,7 @@ def create_app() -> FastAPI:
             "draws": [
                 {
                     "draw_no": d.draw_no,
-                    "draw_date": d.draw_date,
+                    "draw_date": format_draw_date(d.draw_date),
                     "numbers": d.numbers,
                     "bonus": d.bonus,
                 }
@@ -140,18 +166,27 @@ def create_app() -> FastAPI:
         if not available_draws:
             raise HTTPException(status_code=400, detail="No draw history in DB. Run /api/sync first.")
 
-        strategy = STRATEGIES.get(request.strategy)
-        if strategy is None:
+        if request.strategy not in STRATEGIES:
             raise HTTPException(status_code=400, detail="Unknown strategy")
 
-        games = strategy(request.game_count, request.seed)
+        options = request.options.model_dump() if hasattr(request.options, "model_dump") else request.options.dict()
+        try:
+            games, normalized_options = generate_games_with_options(
+                request.strategy,
+                request.game_count,
+                request.seed,
+                options,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
         evaluated = _evaluate(games, available_draws)
 
         run_id = db.save_game_run(
             strategy=request.strategy,
             game_count=request.game_count,
             seed=request.seed,
-            options_json="{}",
+            options_json=json.dumps(normalized_options, separators=(",", ":")),
             evaluated_until=available_draws[-1].draw_no,
             game_sets=evaluated,
         )
@@ -168,6 +203,7 @@ def create_app() -> FastAPI:
             run_id=run_id,
             created_at=str(created_at) if created_at else "",
             strategy=request.strategy,
+            strategy_options=normalized_options,
             game_count=request.game_count,
             seed=request.seed,
             evaluated_until=available_draws[-1].draw_no,
@@ -181,6 +217,44 @@ def create_app() -> FastAPI:
                 }
                 for g in evaluated
             ],
+        )
+
+    @app.post("/api/number-check", response_model=NumberCheckResponse)
+    def check_numbers(request: NumberCheckRequest):
+        draws = db.fetch_draws()
+        if not draws:
+            raise HTTPException(status_code=400, detail="No draw history in DB. Run /api/sync first.")
+
+        game = _evaluate([request.numbers], draws)[0]
+        draw_map = {d.draw_no: d for d in draws}
+
+        hits: list[dict] = []
+        for item in game["hits"]:
+            draw = draw_map.get(item["draw_no"])
+            if draw is None:
+                continue
+            hits.append(
+                {
+                    "draw_no": draw.draw_no,
+                    "draw_date": format_draw_date(draw.draw_date),
+                    "rank": item["rank"],
+                    "match_count": item["match_count"],
+                    "bonus_match": bool(item["bonus_match"]),
+                    "draw_numbers": draw.numbers,
+                    "bonus": draw.bonus,
+                    "matched_numbers": item["matched_numbers"],
+                }
+            )
+
+        hits.sort(key=lambda h: h["draw_no"], reverse=True)
+
+        return NumberCheckResponse(
+            numbers=request.numbers,
+            total_draws=len(draws),
+            evaluated_until=draws[-1].draw_no,
+            rank_distribution=game["rank_distribution"],
+            total_hits=game["total_hits"],
+            hits=hits,
         )
 
     @app.get("/api/games")

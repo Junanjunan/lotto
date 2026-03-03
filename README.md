@@ -70,6 +70,7 @@ curl -X POST http://localhost:8645/api/games \
 - `POST /api/sync` : 동기화 실행
 - `GET /api/draws` : 회차 조회 (`start_no`, `end_no` 쿼리 지원)
 - `POST /api/games` : 게임 생성 및 평가
+- `POST /api/number-check` : 사용자 지정 6개 번호 조합의 역대 당첨 이력/등수 조회
 - `GET /api/games` : 게임 실행 이력
 - `GET /api/games/{id}` : 게임 상세(추가 파라미터 `include_hits=true` 가능)
 - `GET /api/sync/runs` : 동기화 이력

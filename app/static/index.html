@@ -556,6 +556,119 @@
       margin-top: 12px;
     }
 
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 16px;
+    }
+
+    .tab-btn {
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid #bad0c6;
+      background: #edf7f3;
+      color: #2d5459;
+      font-size: 0.84rem;
+      font-weight: 800;
+      box-shadow: none;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(110deg, var(--accent), #169f95);
+      border-color: #0f766e;
+      color: #fff;
+      box-shadow: 0 8px 16px rgba(15, 118, 110, 0.25);
+    }
+
+    .tab-panel {
+      display: none;
+      gap: 16px;
+    }
+
+    .tab-panel.active {
+      display: grid;
+    }
+
+    .pick-grid {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .num-pick-btn {
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid #bfd2c9;
+      background: #f4faf7;
+      color: #264c52;
+      font-size: 0.84rem;
+      font-weight: 800;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    .num-pick-btn.is-selected {
+      background: linear-gradient(130deg, #d8f2ec, #bee8de);
+      border-color: #68aa95;
+      color: #12454d;
+    }
+
+    .pick-tools {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .pick-tools .btn-primary,
+    .pick-tools .btn-secondary {
+      height: 40px;
+      padding: 0 16px;
+    }
+
+    .pick-count {
+      margin-left: auto;
+      color: var(--text-soft);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .pick-selected {
+      margin-top: 12px;
+      min-height: 34px;
+      padding: 10px;
+      border: 1px dashed #b6ccc1;
+      border-radius: 12px;
+      background: #f8fcfa;
+    }
+
+    .pick-status {
+      margin: 10px 0 0;
+      color: var(--text-soft);
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+
+    .pick-status[data-tone="ok"] {
+      color: #1a6d46;
+    }
+
+    .pick-status[data-tone="error"] {
+      color: #8f3028;
+    }
+
+    .pick-status[data-tone="running"] {
+      color: #0c5f58;
+    }
+
+    .pick-table td:nth-child(6),
+    .pick-table td:nth-child(7) {
+      text-align: left;
+    }
+
     .small {
       color: var(--text-soft);
       font-size: 0.8rem;
@@ -615,6 +728,27 @@
         grid-template-columns: 1fr;
       }
 
+      .tab-nav {
+        flex-wrap: wrap;
+      }
+
+      .tab-btn {
+        width: 100%;
+      }
+
+      .pick-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+
+      .pick-tools {
+        align-items: stretch;
+      }
+
+      .pick-count {
+        margin-left: 0;
+        width: 100%;
+      }
+
       .option-box {
         width: 100%;
         border-radius: 12px;
@@ -644,103 +778,137 @@
       <p id="status" data-tone="running">준비됨</p>
     </header>
 
-    <section class="panel controls">
-      <div class="control-top">
-        <label class="field">
-          게임 수
-          <input id="gameCount" type="number" min="1" value="5" />
-        </label>
-        <label class="field">
-          시드
-          <input id="seed" type="number" placeholder="선택: 1.." />
-        </label>
-        <div class="btn-row">
-          <button id="runBtn" class="btn-primary">게임 생성</button>
-          <button id="syncBtn" class="btn-secondary">동기화 실행</button>
+    <section class="panel tab-nav">
+      <button id="tabGenerateBtn" class="tab-btn active" aria-selected="true">전략 게임 생성</button>
+      <button id="tabNumberCheckBtn" class="tab-btn" aria-selected="false">번호 6개 직접 검증</button>
+    </section>
+
+    <section id="tabGeneratePanel" class="tab-panel active">
+      <section class="panel controls">
+        <div class="control-top">
+          <label class="field">
+            게임 수
+            <input id="gameCount" type="number" min="1" value="5" />
+          </label>
+          <label class="field">
+            시드
+            <input id="seed" type="number" placeholder="선택: 1.." />
+          </label>
+          <div class="btn-row">
+            <button id="runBtn" class="btn-primary">게임 생성</button>
+            <button id="syncBtn" class="btn-secondary">동기화 실행</button>
+          </div>
         </div>
+
+        <div class="options-row strategy-row">
+          <label class="option-box strategy-box">
+            <input class="strategy-radio" id="strategyLowOverlap" name="strategy" type="radio" data-strategy="low_overlap_random" checked />
+            <span class="strategy-box-content">
+              <span class="strategy-title">중복 최소 랜덤</span>
+              <span class="strategy-desc">여러 게임의 숫자 중복을 최대한 줄여 고르게 분산합니다.</span>
+            </span>
+          </label>
+          <label class="option-box strategy-box">
+            <input class="strategy-radio" id="strategyUniform" name="strategy" type="radio" data-strategy="uniform_random" />
+            <span class="strategy-box-content">
+              <span class="strategy-title">균등 랜덤</span>
+              <span class="strategy-desc">각 게임을 완전 무작위로 생성하는 기본 랜덤 방식입니다.</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="options-row">
+          <label class="option-box">
+            <input id="optAvoidBirthday" type="checkbox" />
+            <span class="option-label">생일 편향 회피(32~45 비중 강화)</span>
+          </label>
+          <label class="option-box">
+            <input id="optIncludeConsecutive" type="checkbox" />
+            <span class="option-label">연속 번호 1쌍 이상 포함</span>
+          </label>
+          <label class="option-box">
+            <input id="optAvoidPopular" type="checkbox" />
+            <span class="option-label">인기 숫자(7) 제외</span>
+          </label>
+          <label class="option-box">
+            <input id="optBalancedOddEven" type="checkbox" />
+            <span class="option-label">홀짝 균형(2:4~4:2)</span>
+          </label>
+          <label class="option-box">
+            <input id="optBalancedHighLow" type="checkbox" />
+            <span class="option-label">고저 균형(1~22 / 23~45)</span>
+          </label>
+          <label class="option-box">
+            <input id="optSumBand" type="checkbox" />
+            <span class="option-label">번호합 100~170 구간</span>
+          </label>
+          <label class="option-box">
+            <input id="optAvoidSameLastDigitCluster" type="checkbox" />
+            <span class="option-label">끝수(일의 자리) 쏠림 방지</span>
+          </label>
+          <label class="option-box">
+            <input id="optAvoidArithmeticSequence" type="checkbox" />
+            <span class="option-label">등차수열 패턴 제외</span>
+          </label>
+        </div>
+      </section>
+
+      <div class="panel-grid">
+        <section class="panel">
+          <h2>요약</h2>
+          <div id="summary" class="chips"></div>
+        </section>
+
+        <section class="panel">
+          <h2>최근 동기화 / 회차</h2>
+          <pre id="draws">loading...</pre>
+        </section>
       </div>
 
-      <div class="options-row strategy-row">
-        <label class="option-box strategy-box">
-          <input class="strategy-radio" id="strategyLowOverlap" name="strategy" type="radio" data-strategy="low_overlap_random" checked />
-          <span class="strategy-box-content">
-            <span class="strategy-title">중복 최소 랜덤</span>
-            <span class="strategy-desc">여러 게임의 숫자 중복을 최대한 줄여 고르게 분산합니다.</span>
-          </span>
-        </label>
-        <label class="option-box strategy-box">
-          <input class="strategy-radio" id="strategyUniform" name="strategy" type="radio" data-strategy="uniform_random" />
-          <span class="strategy-box-content">
-            <span class="strategy-title">균등 랜덤</span>
-            <span class="strategy-desc">각 게임을 완전 무작위로 생성하는 기본 랜덤 방식입니다.</span>
-          </span>
-        </label>
-      </div>
-
-      <div class="options-row">
-        <label class="option-box">
-          <input id="optAvoidBirthday" type="checkbox" />
-          <span class="option-label">생일 편향 회피(32~45 비중 강화)</span>
-        </label>
-        <label class="option-box">
-          <input id="optIncludeConsecutive" type="checkbox" />
-          <span class="option-label">연속 번호 1쌍 이상 포함</span>
-        </label>
-        <label class="option-box">
-          <input id="optAvoidPopular" type="checkbox" />
-          <span class="option-label">인기 숫자(7) 제외</span>
-        </label>
-        <label class="option-box">
-          <input id="optBalancedOddEven" type="checkbox" />
-          <span class="option-label">홀짝 균형(2:4~4:2)</span>
-        </label>
-        <label class="option-box">
-          <input id="optBalancedHighLow" type="checkbox" />
-          <span class="option-label">고저 균형(1~22 / 23~45)</span>
-        </label>
-        <label class="option-box">
-          <input id="optSumBand" type="checkbox" />
-          <span class="option-label">번호합 100~170 구간</span>
-        </label>
-        <label class="option-box">
-          <input id="optAvoidSameLastDigitCluster" type="checkbox" />
-          <span class="option-label">끝수(일의 자리) 쏠림 방지</span>
-        </label>
-        <label class="option-box">
-          <input id="optAvoidArithmeticSequence" type="checkbox" />
-          <span class="option-label">등차수열 패턴 제외</span>
-        </label>
-      </div>
-    </section>
-
-    <div class="panel-grid">
       <section class="panel">
-        <h2>요약</h2>
-        <div id="summary" class="chips"></div>
+        <div class="section-head">
+          <h2>모든 당첨번호</h2>
+          <button id="allDrawsToggle" class="inline-toggle" aria-expanded="false">▶</button>
+        </div>
+        <p id="allDrawsStatus" class="muted">토글해서 전체 당첨번호를 불러와 보세요.</p>
+        <div id="allDrawsWrap" class="list-wrap">
+          <div id="allDraws" class="small">로딩 중...</div>
+        </div>
       </section>
 
       <section class="panel">
-        <h2>최근 동기화 / 회차</h2>
-        <pre id="draws">loading...</pre>
+        <h2>생성 결과</h2>
+        <div id="results" class="results-wrap">
+          <p class="empty">아직 생성된 게임이 없습니다.</p>
+        </div>
       </section>
-    </div>
-
-    <section class="panel">
-      <div class="section-head">
-        <h2>모든 당첨번호</h2>
-        <button id="allDrawsToggle" class="inline-toggle" aria-expanded="false">▶</button>
-      </div>
-      <p id="allDrawsStatus" class="muted">토글해서 전체 당첨번호를 불러와 보세요.</p>
-      <div id="allDrawsWrap" class="list-wrap">
-        <div id="allDraws" class="small">로딩 중...</div>
-      </div>
     </section>
 
-    <section class="panel">
-      <h2>생성 결과</h2>
-      <div id="results" class="results-wrap">
-        <p class="empty">아직 생성된 게임이 없습니다.</p>
-      </div>
+    <section id="tabNumberCheckPanel" class="tab-panel">
+      <section class="panel">
+        <h2>번호 6개 선택</h2>
+        <p class="muted">1~45에서 숫자 6개를 클릭하면 해당 조합이 역대 회차에서 몇 등으로 당첨될 수 있었는지 조회합니다.</p>
+        <div id="pickSelected" class="pick-selected">
+          <span class="small">아직 선택 없음</span>
+        </div>
+        <div class="pick-tools">
+          <button id="checkNumbersBtn" class="btn-primary" disabled>당첨 이력 조회</button>
+          <button id="clearNumbersBtn" class="btn-secondary">선택 초기화</button>
+          <span class="pick-count"><strong id="pickCount">0</strong> / 6 선택</span>
+        </div>
+        <div id="pickStatus" class="pick-status" data-tone="running">숫자 6개를 선택해 주세요.</div>
+        <div id="pickGrid" class="pick-grid"></div>
+      </section>
+
+      <section class="panel">
+        <h2>조합 당첨 이력</h2>
+        <div id="pickSummary" class="chips">
+          <span class="chip chip-muted">아직 조회된 결과가 없습니다.</span>
+        </div>
+        <div id="pickResults" class="results-wrap">
+          <p class="empty">선택한 번호 조합의 분석 결과가 여기에 표시됩니다.</p>
+        </div>
+      </section>
     </section>
   </main>
 
@@ -761,8 +929,21 @@
   var allDrawsToggleEl = document.getElementById('allDrawsToggle');
   var summaryEl = document.getElementById('summary');
   var resultEl = document.getElementById('results');
+  var tabGenerateBtnEl = document.getElementById('tabGenerateBtn');
+  var tabNumberCheckBtnEl = document.getElementById('tabNumberCheckBtn');
+  var tabGeneratePanelEl = document.getElementById('tabGeneratePanel');
+  var tabNumberCheckPanelEl = document.getElementById('tabNumberCheckPanel');
+  var pickGridEl = document.getElementById('pickGrid');
+  var pickSelectedEl = document.getElementById('pickSelected');
+  var pickCountEl = document.getElementById('pickCount');
+  var pickStatusEl = document.getElementById('pickStatus');
+  var pickSummaryEl = document.getElementById('pickSummary');
+  var pickResultsEl = document.getElementById('pickResults');
+  var checkNumbersBtnEl = document.getElementById('checkNumbersBtn');
+  var clearNumbersBtnEl = document.getElementById('clearNumbersBtn');
   var allDrawsLoaded = false;
   var allDrawsCount = 0;
+  var selectedPickNumbers = [];
   var strategyLabels = {
     low_overlap_random: '중복 최소 랜덤',
     uniform_random: '균등 랜덤'
@@ -795,6 +976,25 @@
 
   function setSummaryEmpty() {
     summaryEl.innerHTML = '<span class="chip chip-muted">아직 실행된 결과가 없습니다.</span>';
+  }
+
+  function setPickSummaryEmpty() {
+    pickSummaryEl.innerHTML = '<span class="chip chip-muted">아직 조회된 결과가 없습니다.</span>';
+  }
+
+  function setPickStatus(msg, tone) {
+    pickStatusEl.textContent = msg;
+    pickStatusEl.setAttribute('data-tone', tone || 'running');
+  }
+
+  function switchTab(tabName) {
+    var isGenerate = tabName !== 'number-check';
+    tabGeneratePanelEl.classList.toggle('active', isGenerate);
+    tabNumberCheckPanelEl.classList.toggle('active', !isGenerate);
+    tabGenerateBtnEl.classList.toggle('active', isGenerate);
+    tabNumberCheckBtnEl.classList.toggle('active', !isGenerate);
+    tabGenerateBtnEl.setAttribute('aria-selected', isGenerate ? 'true' : 'false');
+    tabNumberCheckBtnEl.setAttribute('aria-selected', isGenerate ? 'false' : 'true');
   }
 
   function renderNumberBalls(nums, extraClass, bonus) {
@@ -842,6 +1042,82 @@
     }
     out += '</div>';
     return out;
+  }
+
+  function formatDistributionText(dist) {
+    var labels = [1, 2, 3, 4, 5];
+    var out = [];
+    for (var i = 0; i < labels.length; i++) {
+      var rank = labels[i];
+      var key = String(rank);
+      var value = dist && Object.prototype.hasOwnProperty.call(dist, key) ? dist[key] : 0;
+      out.push(key + '등 ' + value);
+    }
+    return out.join(', ');
+  }
+
+  function renderPickGrid() {
+    var html = '';
+    for (var n = 1; n <= 45; n++) {
+      html += '<button class="num-pick-btn" type="button" data-number="' + n + '">' + n + '</button>';
+    }
+    pickGridEl.innerHTML = html;
+
+    var buttons = pickGridEl.getElementsByClassName('num-pick-btn');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener('click', function () {
+        var value = parseInt(this.getAttribute('data-number'), 10);
+        if (isNaN(value)) {
+          return;
+        }
+        togglePickNumber(value);
+      });
+    }
+  }
+
+  function updatePickSelectionUi() {
+    selectedPickNumbers.sort(function (a, b) { return a - b; });
+    pickCountEl.textContent = String(selectedPickNumbers.length);
+    checkNumbersBtnEl.disabled = selectedPickNumbers.length !== 6;
+    if (selectedPickNumbers.length === 0) {
+      pickSelectedEl.innerHTML = '<span class="small">아직 선택 없음</span>';
+    } else {
+      pickSelectedEl.innerHTML = renderNumberBalls(selectedPickNumbers);
+    }
+
+    var buttons = pickGridEl.getElementsByClassName('num-pick-btn');
+    for (var i = 0; i < buttons.length; i++) {
+      var buttonNumber = parseInt(buttons[i].getAttribute('data-number'), 10);
+      var active = selectedPickNumbers.indexOf(buttonNumber) >= 0;
+      buttons[i].classList.toggle('is-selected', active);
+    }
+  }
+
+  function togglePickNumber(number) {
+    var idx = selectedPickNumbers.indexOf(number);
+    if (idx >= 0) {
+      selectedPickNumbers.splice(idx, 1);
+      setPickStatus('숫자를 선택 중입니다.', 'running');
+      updatePickSelectionUi();
+      return;
+    }
+    if (selectedPickNumbers.length >= 6) {
+      setPickStatus('6개까지만 선택할 수 있습니다.', 'error');
+      return;
+    }
+    selectedPickNumbers.push(number);
+    if (selectedPickNumbers.length === 6) {
+      setPickStatus('조합이 완성되었습니다. 당첨 이력을 조회해 보세요.', 'ok');
+    } else {
+      setPickStatus('숫자를 선택 중입니다.', 'running');
+    }
+    updatePickSelectionUi();
+  }
+
+  function clearPickSelection() {
+    selectedPickNumbers = [];
+    setPickStatus('숫자 6개를 선택해 주세요.', 'running');
+    updatePickSelectionUi();
   }
 
   function formatStrategyLabel(strategy) {
@@ -933,6 +1209,31 @@
     return '<table class="detail-table">' +
       '<thead><tr><th>회차</th><th>당첨번호(보너스 제외)</th><th>일치 개수</th><th>보너스</th><th>당첨된 번호</th><th>등수</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderNumberCheckResult(data) {
+    if (!data.hits || data.hits.length === 0) {
+      return '<p class="empty">총 ' + data.total_draws + '회차 기준으로 당첨 이력이 없습니다.</p>';
+    }
+    var rows = '';
+    for (var i = 0; i < data.hits.length; i++) {
+      var h = data.hits[i];
+      rows += '<tr>' +
+        '<td>' + h.draw_no + '</td>' +
+        '<td>' + h.draw_date + '</td>' +
+        '<td>' + rankLabel(h.rank) + '</td>' +
+        '<td>' + h.match_count + '</td>' +
+        '<td>' + (h.bonus_match ? 'O' : 'X') + '</td>' +
+        '<td>' + renderNumberBalls(h.draw_numbers, 'sm', h.bonus) + '</td>' +
+        '<td>' + renderNumberBalls(h.matched_numbers, 'sm') + '</td>' +
+        '</tr>';
+    }
+    return '<div class="small" style="margin:0 0 8px 0;">최신 회차 ' + data.evaluated_until + '까지 조회</div>' +
+      '<div class="scroll-table">' +
+      '<table class="pick-table">' +
+      '<thead><tr><th>회차</th><th>추첨일</th><th>등수</th><th>일치</th><th>보너스</th><th>당첨번호</th><th>맞춘번호</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '</div>';
   }
 
   function fetchJson(url, options) {
@@ -1103,8 +1404,47 @@
       });
   }
 
+  function runNumberCheck() {
+    if (selectedPickNumbers.length !== 6) {
+      setPickStatus('숫자 6개를 정확히 선택해 주세요.', 'error');
+      return;
+    }
+
+    setStatus('선택 조합 분석 중...', 'running');
+    setPickStatus('역대 회차와 비교 중입니다...', 'running');
+
+    fetchJson('/api/number-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numbers: selectedPickNumbers })
+    })
+      .then(function (data) {
+        pickSummaryEl.innerHTML =
+          '<span class="chip">선택 조합 ' + data.numbers.join(', ') + '</span>' +
+          '<span class="chip">조회 회차 ' + data.total_draws + '</span>' +
+          '<span class="chip">누적 1~5등 ' + data.total_hits + '</span>' +
+          '<span class="chip">분포 ' + formatDistributionText(data.rank_distribution) + '</span>';
+        pickResultsEl.innerHTML = renderNumberCheckResult(data);
+        setPickStatus('분석 완료: 누적 1~5등 ' + data.total_hits + '회', 'ok');
+        setStatus('선택 조합 분석 완료', 'ok');
+      })
+      .catch(function (err) {
+        setPickStatus('분석 실패: ' + err.message, 'error');
+        pickResultsEl.innerHTML = '<p class="empty">번호 조합 분석에 실패했습니다.</p>';
+        setStatus('선택 조합 분석 실패', 'error');
+      });
+  }
+
   document.getElementById('runBtn').addEventListener('click', runGames);
   document.getElementById('syncBtn').addEventListener('click', syncDraws);
+  tabGenerateBtnEl.addEventListener('click', function () {
+    switchTab('generate');
+  });
+  tabNumberCheckBtnEl.addEventListener('click', function () {
+    switchTab('number-check');
+  });
+  checkNumbersBtnEl.addEventListener('click', runNumberCheck);
+  clearNumbersBtnEl.addEventListener('click', clearPickSelection);
   allDrawsToggleEl.addEventListener('click', function () {
     var expanded = allDrawsToggleEl.getAttribute('aria-expanded') === 'true';
     if (expanded) {
@@ -1126,6 +1466,9 @@
   });
 
   setSummaryEmpty();
+  setPickSummaryEmpty();
+  renderPickGrid();
+  updatePickSelectionUi();
   loadDraws();
 </script>
 </body>
