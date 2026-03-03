@@ -61,6 +61,8 @@ def evaluate_games(games: list[list[int]], draws: list[Draw]) -> list[dict]:
             if rank_distribution[label] > 0
         }
 
+        hits.sort(key=lambda hit: (hit["rank"], -hit["draw_no"]))
+
         out.append(
             {
                 "game_index": idx,
