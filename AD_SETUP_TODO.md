@@ -56,6 +56,7 @@ ADFIT_HEIGHT_STICKY=100
 1. `ads.txt`는 **도메인 루트**에서 접근 가능해야 합니다.
 2. 예: `https://your-domain.com/ads.txt`
 3. `/lotto/ads.txt`만 올리면 대부분 인증에 실패합니다.
+4. 이 레포의 Nginx 조각 기준 기본값은 `/var/www/taltalrealty/store/ads.txt`이므로, 실제 웹 루트 경로에 맞게 조정하세요.
 
 ## 6) 개인정보/광고 고지
 1. 개인정보처리방침 페이지에 광고/쿠키/제3자 스크립트 내용을 명시하세요.

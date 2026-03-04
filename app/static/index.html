@@ -6,24 +6,26 @@
   <title>Lotto 전략 생성기</title>
   <style>
     :root {
-      --bg: #f2f4ea;
-      --bg-alt: #e3efe9;
-      --panel: rgba(255, 255, 255, 0.86);
+      --bg: #eff4f9;
+      --bg-alt: #e0e9f3;
+      --panel: rgba(255, 255, 255, 0.92);
       --panel-strong: #ffffff;
-      --line: #c8d8cf;
-      --line-strong: #aac3b7;
-      --text: #1b282d;
-      --text-soft: #5b7078;
+      --panel-soft: #f6f9fc;
+      --line: #d4dde7;
+      --line-strong: #aebccc;
+      --text: #0f1722;
+      --text-soft: #5b6a77;
       --accent: #0f766e;
       --accent-strong: #0b5b55;
-      --accent-soft: #d2ece8;
+      --accent-soft: #d9f1ed;
       --warm: #f08a52;
       --warm-soft: #ffe0cf;
       --danger: #bb3d34;
-      --danger-soft: #ffdcd6;
+      --danger-soft: #ffe4e0;
       --ok: #1f7f53;
       --ok-soft: #d7f2e1;
-      --shadow: 0 14px 36px rgba(25, 45, 52, 0.14);
+      --shadow: 0 14px 32px rgba(23, 41, 63, 0.09);
+      --shadow-soft: 0 8px 22px rgba(23, 41, 63, 0.08);
       --radius-lg: 24px;
       --radius-md: 16px;
       --radius-sm: 12px;
@@ -35,12 +37,12 @@
 
     body {
       margin: 0;
-      font-family: "SUIT Variable", "Pretendard Variable", "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      font-family: "Pretendard Variable", "Pretendard", "Inter", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 8% 12%, rgba(15, 118, 110, 0.18), transparent 38%),
-        radial-gradient(circle at 88% 16%, rgba(240, 138, 82, 0.2), transparent 35%),
-        radial-gradient(circle at 76% 84%, rgba(36, 129, 173, 0.16), transparent 34%),
+        radial-gradient(circle at 10% 0%, rgba(15, 118, 110, 0.2), transparent 42%),
+        radial-gradient(circle at 84% 10%, rgba(23, 105, 166, 0.18), transparent 38%),
+        radial-gradient(circle at 50% 110%, rgba(15, 118, 110, 0.12), transparent 52%),
         linear-gradient(165deg, var(--bg), var(--bg-alt));
       min-height: 100vh;
     }
@@ -56,10 +58,21 @@
     .panel {
       border: 1px solid var(--line);
       border-radius: var(--radius-lg);
-      background: var(--panel);
+      background: linear-gradient(180deg, var(--panel), var(--panel-soft));
       backdrop-filter: blur(8px);
       box-shadow: var(--shadow);
       padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent, var(--accent));
+      opacity: 0.38;
     }
 
     .hero {
@@ -70,8 +83,7 @@
       position: relative;
       overflow: hidden;
       border-color: var(--line-strong);
-      background:
-        linear-gradient(125deg, rgba(255, 255, 255, 0.95), rgba(229, 247, 242, 0.88));
+      background: linear-gradient(135deg, #fff, #edf7f5 60%, #e5f1f7);
     }
 
     .hero::after {
@@ -82,7 +94,7 @@
       border-radius: 999px;
       right: -46px;
       top: -54px;
-      background: radial-gradient(circle, rgba(15, 118, 110, 0.22), transparent 72%);
+      background: radial-gradient(circle, rgba(15, 118, 110, 0.18), transparent 72%);
       pointer-events: none;
     }
 
@@ -97,6 +109,7 @@
       margin: 0;
       font-size: 1.08rem;
       letter-spacing: -0.01em;
+      font-weight: 800;
     }
 
     .intro {
@@ -115,7 +128,7 @@
       padding: 8px 12px;
       border-radius: 999px;
       border: 1px solid var(--line);
-      background: #f4f8f6;
+      background: #f8fbff;
       color: #2f4b50;
       font-weight: 700;
       font-size: 0.85rem;
@@ -132,8 +145,8 @@
     }
 
     #status[data-tone="running"] {
-      background: #e8f6f5;
-      border-color: #abd7d3;
+      background: var(--accent-soft);
+      border-color: #8ed2cc;
       color: var(--accent-strong);
     }
 
@@ -155,7 +168,7 @@
 
     #status[data-tone="error"] {
       background: var(--danger-soft);
-      border-color: #efb6af;
+      border-color: #f4b7ae;
       color: #7a2a24;
     }
 
@@ -236,12 +249,14 @@
       color: #fff;
       background: linear-gradient(110deg, var(--accent), #18a59a);
       box-shadow: 0 10px 18px rgba(15, 118, 110, 0.28);
+      letter-spacing: 0.01em;
     }
 
     .btn-secondary {
-      color: #6a340f;
-      background: linear-gradient(110deg, #ffd7c3, #ffd2ab);
-      border-color: #f4bc97;
+      color: #15465d;
+      background: linear-gradient(110deg, #e9f0ff, #e0edf8);
+      border-color: #adcfe9;
+      font-weight: 800;
     }
 
     .options-row {
@@ -423,28 +438,97 @@
       border-radius: 999px;
       padding: 6px 11px;
       font-size: 0.82rem;
-      background: #edf8f4;
-      color: #25474d;
+      background: #ecf5f3;
+      color: #1d444a;
       font-weight: 700;
     }
 
     .chip-muted {
       border-color: #c7d7cf;
-      color: #5c7379;
+      color: #6b7f86;
       background: #f3f7f5;
     }
 
     pre {
       margin: 12px 0 0;
-      background: #102229;
-      color: #c8f0f5;
-      border: 1px solid #21434e;
+      background: #0f1722;
+      color: #ecf7f4;
+      border: 1px solid #1e2f3b;
       border-radius: var(--radius-sm);
       padding: 14px;
       overflow: auto;
       font-size: 0.82rem;
       line-height: 1.5;
       min-height: 148px;
+    }
+
+    .draw-overview {
+      margin-top: 12px;
+    }
+
+    .draw-latest-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      box-shadow: var(--shadow-soft);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      animation: rise-in 360ms ease-out;
+    }
+
+    .draw-latest-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .draw-latest-meta {
+      display: grid;
+      gap: 6px;
+      font-size: 0.84rem;
+      color: var(--text-soft);
+    }
+
+    .draw-latest-meta strong {
+      color: var(--text);
+    }
+
+    .draw-latest-label {
+      font-size: 0.74rem;
+      letter-spacing: 0.03em;
+      color: var(--text-soft);
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .draw-latest-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 2px;
+    }
+
+    .draw-latest-row .chip {
+      margin-left: auto;
+    }
+
+    .draw-latest-numbers {
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px dashed #cae1db;
+      background: #f8fcfa;
+    }
+
+    .draw-latest-badge {
+      min-width: 140px;
+      text-align: right;
+      font-weight: 800;
+      color: var(--accent-strong);
     }
 
     .section-head {
@@ -550,9 +634,9 @@
     .scroll-table {
       max-height: 420px;
       overflow: auto;
-      border: 1px solid #c8d8cf;
+      border: 1px solid var(--line);
       border-radius: var(--radius-sm);
-      background: #f6faf8;
+      background: #ffffff;
     }
 
     table {
@@ -562,7 +646,7 @@
 
     th,
     td {
-      border-bottom: 1px solid #d6e2db;
+      border-bottom: 1px solid #e2e8ee;
       padding: 10px 8px;
       vertical-align: top;
       font-size: 0.84rem;
@@ -570,8 +654,8 @@
     }
 
     thead th {
-      background: #e7f3ee;
-      color: #1c4449;
+      background: linear-gradient(180deg, #f7fbff, #edf4fd);
+      color: #183a4c;
       text-align: center;
       font-weight: 800;
       position: sticky;
@@ -608,7 +692,7 @@
       align-items: center;
       justify-content: center;
       border-radius: 999px;
-      background: linear-gradient(145deg, #ecfaf7, #d4efea);
+      background: linear-gradient(145deg, #ebf9f5, #d5ece5);
       border: 1px solid #9fc9bb;
       color: #164449;
       font-weight: 800;
@@ -906,6 +990,14 @@
         height: 23px;
         font-size: 0.72rem;
       }
+
+      .draw-latest-row {
+        gap: 6px;
+      }
+
+      .draw-latest-badge {
+        min-width: 0;
+      }
     }
 
     @media (min-width: 981px) {
@@ -1185,7 +1277,9 @@
 
         <section class="panel">
           <h2>최근 동기화 / 회차</h2>
-          <pre id="draws">loading...</pre>
+          <div id="draws" class="draw-overview">
+            <p class="muted">회차 정보를 조회 중입니다.</p>
+          </div>
         </section>
       </div>
 
@@ -1395,6 +1489,42 @@
       return '-';
     }
     return nums.join(', ');
+  }
+
+  function renderLatestDrawSummary(data) {
+    if (!data || !data.draws || data.draws.length === 0) {
+      return '<p class="empty">저장된 회차 데이터가 없습니다.</p>';
+    }
+
+    var latest = data.draws[data.draws.length - 1];
+    var total = data.count || data.draws.length;
+    var latestDate = latest.draw_date || '-';
+    var latestNo = latest.draw_no || '-';
+    var latestNumbers = renderNumberBalls(latest.numbers || [], 'sm');
+    var bonusNumber = typeof latest.bonus === 'number' ? latest.bonus : null;
+    var bonusDisplay = bonusNumber === null ? '-' : '<span class="num-ball sm bonus">' + bonusNumber + '</span>';
+    var bonusLabel = bonusNumber === null ? '보너스 없음' : '보너스';
+
+    return '' +
+      '<div class="draw-latest-card">' +
+      '  <div class="draw-latest-head">' +
+      '    <p class="draw-latest-label">최근 회차</p>' +
+      '    <p class="draw-latest-badge">회차 ' + latestNo + '</p>' +
+      '  </div>' +
+      '  <div class="draw-latest-meta">' +
+      '    <div>추첨일 <strong>' + latestDate + '</strong></div>' +
+      '    <div>누적 회차 <strong>' + total + '</strong>개</div>' +
+      '  </div>' +
+      '  <div class="draw-latest-row">' +
+      '    <p class="draw-latest-label">당첨번호</p>' +
+      '    <span class="chip">조회 완료</span>' +
+      '  </div>' +
+      '  <div class="draw-latest-numbers">' + latestNumbers + '</div>' +
+      '  <div class="draw-latest-row">' +
+      '    <p class="draw-latest-label">' + bonusLabel + '</p>' +
+      '    <span class="draw-latest-badge">' + bonusDisplay + '</span>' +
+      '  </div>' +
+      '</div>';
   }
 
   function renderDistribution(dist) {
@@ -1948,26 +2078,11 @@
   function loadDraws() {
     fetchJson('/api/draws')
       .then(function (data) {
-        if (!data.draws || data.draws.length === 0) {
-          drawsEl.textContent = '저장된 회차 데이터가 없습니다.';
-          return;
-        }
-        var latest = data.draws[data.draws.length - 1];
-        drawsEl.textContent = JSON.stringify(
-          {
-            total_count: data.count,
-            latest_draw_no: latest.draw_no,
-            latest_numbers: latest.numbers,
-            bonus: latest.bonus,
-            draw_date: latest.draw_date
-          },
-          null,
-          2
-        );
+        drawsEl.innerHTML = renderLatestDrawSummary(data);
       })
       .catch(function (err) {
         setStatus('회차 조회 실패: ' + err.message, 'error');
-        drawsEl.textContent = '회차 조회 실패';
+        drawsEl.innerHTML = '<p class="empty">회차 조회 실패</p>';
       });
   }
 
