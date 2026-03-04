@@ -46,6 +46,14 @@ docker compose build
 ./rebuild_restart.sh --no-cache
 ```
 
+### 광고(AdSense/AdFit) 설정
+- 런타임 스위치: `AD_PROVIDER=none|adsense|adfit`
+- 페이지 내 슬롯 3개가 준비되어 있습니다.
+  - 상단 배너: `top`
+  - 중단 배너: `mid`
+  - 모바일 하단 고정: `sticky`
+- 상세 설정과 운영자 할 일은 `AD_SETUP_TODO.md`를 참고하세요.
+
 ### 3) 실행
 ```bash
 docker compose up -d

@@ -474,6 +474,74 @@
       line-height: 1.45;
     }
 
+    .ad-panel {
+      padding: 12px 14px;
+    }
+
+    .ad-label {
+      margin: 0 0 8px;
+      color: #6d7e84;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .ad-slot {
+      min-height: 90px;
+      border: 1px dashed #b8cfc3;
+      border-radius: 12px;
+      background: #f7fbf9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6d7e84;
+      font-size: 0.8rem;
+    }
+
+    .ad-slot.is-live {
+      border-style: solid;
+      border-color: #c9dad2;
+      background: #ffffff;
+    }
+
+    .ad-sticky-wrap {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 10px;
+      z-index: 80;
+      width: min(360px, calc(100vw - 14px));
+      background: rgba(248, 252, 250, 0.96);
+      border: 1px solid #bbd1c6;
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(25, 45, 52, 0.18);
+      padding: 10px 10px 8px;
+      backdrop-filter: blur(4px);
+    }
+
+    .ad-sticky-close {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid #b7ccc2;
+      background: #ffffff;
+      color: #4f6970;
+      font-size: 0.8rem;
+      line-height: 1;
+      font-weight: 900;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .ad-sticky-wrap .ad-slot {
+      min-height: 100px;
+      margin-top: 2px;
+    }
+
     .list-wrap {
       margin-top: 12px;
       display: none;
@@ -839,6 +907,12 @@
         font-size: 0.72rem;
       }
     }
+
+    @media (min-width: 981px) {
+      .ad-sticky-wrap {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -850,6 +924,11 @@
       </div>
       <p id="status" data-tone="running">준비됨</p>
     </header>
+
+    <section id="adTopPanel" class="panel ad-panel" hidden>
+      <p class="ad-label">광고</p>
+      <div id="adSlotTop" class="ad-slot"></div>
+    </section>
 
     <section class="panel tab-nav">
       <button id="tabGenerateBtn" class="tab-btn active" aria-selected="true">전략 게임 생성</button>
@@ -1121,6 +1200,11 @@
         </div>
       </section>
 
+      <section id="adMidPanel" class="panel ad-panel" hidden>
+        <p class="ad-label">광고</p>
+        <div id="adSlotMid" class="ad-slot"></div>
+      </section>
+
       <section class="panel">
         <h2>생성 결과</h2>
         <div id="results" class="results-wrap">
@@ -1156,6 +1240,12 @@
       </section>
     </section>
   </main>
+
+  <aside id="adStickyWrap" class="ad-sticky-wrap" hidden>
+    <button id="adStickyClose" class="ad-sticky-close" type="button" aria-label="하단 광고 닫기">×</button>
+    <p class="ad-label">광고</p>
+    <div id="adSlotSticky" class="ad-slot"></div>
+  </aside>
 
 <script>
   var apiBase = '';
@@ -1214,6 +1304,36 @@
     'avoid_arithmetic_sequence'
   ];
   var strategyHelpButtons = document.getElementsByClassName('strategy-help-btn');
+  var adTopPanelEl = document.getElementById('adTopPanel');
+  var adMidPanelEl = document.getElementById('adMidPanel');
+  var adStickyWrapEl = document.getElementById('adStickyWrap');
+  var adStickyCloseEl = document.getElementById('adStickyClose');
+  var adSlotEls = {
+    top: document.getElementById('adSlotTop'),
+    mid: document.getElementById('adSlotMid'),
+    sticky: document.getElementById('adSlotSticky')
+  };
+  var AD_STICKY_DISMISS_KEY = 'lotto_ad_sticky_dismissed';
+  var adStickyDismissed = false;
+  var adSettings = {
+    enabled: false,
+    provider: 'none',
+    client_id: '',
+    ad_test: false,
+    layout: {
+      sticky_mobile_only: true
+    },
+    slots: {
+      top: { enabled: false, slot_id: '', unit: '', width: 728, height: 90 },
+      mid: { enabled: false, slot_id: '', unit: '', width: 728, height: 90 },
+      sticky: { enabled: false, slot_id: '', unit: '', width: 320, height: 100 }
+    }
+  };
+  try {
+    adStickyDismissed = window.sessionStorage.getItem(AD_STICKY_DISMISS_KEY) === '1';
+  } catch (err) {
+    adStickyDismissed = false;
+  }
 
   function setStatus(msg, tone) {
     statusEl.textContent = msg;
@@ -1446,6 +1566,272 @@
     }
   }
 
+  function parsePositiveInt(value, fallback) {
+    var parsed = parseInt(String(value), 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      return fallback;
+    }
+    return parsed;
+  }
+
+  function normalizeAdSettings(raw) {
+    var src = raw && typeof raw === 'object' ? raw : {};
+    var provider = typeof src.provider === 'string' ? src.provider.toLowerCase() : 'none';
+    if (provider !== 'adsense' && provider !== 'adfit') {
+      provider = 'none';
+    }
+    var layout = src.layout && typeof src.layout === 'object' ? src.layout : {};
+    var slotsSrc = src.slots && typeof src.slots === 'object' ? src.slots : {};
+
+    function normalizeSlot(name, defaultWidth, defaultHeight) {
+      var slot = slotsSrc[name] && typeof slotsSrc[name] === 'object' ? slotsSrc[name] : {};
+      return {
+        enabled: !!slot.enabled,
+        slot_id: typeof slot.slot_id === 'string' ? slot.slot_id : '',
+        unit: typeof slot.unit === 'string' ? slot.unit : '',
+        width: parsePositiveInt(slot.width, defaultWidth),
+        height: parsePositiveInt(slot.height, defaultHeight)
+      };
+    }
+
+    var normalized = {
+      enabled: !!src.enabled && provider !== 'none',
+      provider: provider,
+      client_id: typeof src.client_id === 'string' ? src.client_id : '',
+      ad_test: !!src.ad_test,
+      layout: {
+        sticky_mobile_only: layout.sticky_mobile_only !== false
+      },
+      slots: {
+        top: normalizeSlot('top', 728, 90),
+        mid: normalizeSlot('mid', 728, 90),
+        sticky: normalizeSlot('sticky', 320, 100)
+      }
+    };
+    return normalized;
+  }
+
+  function getAdContainerEl(slotName) {
+    if (slotName === 'top') {
+      return adTopPanelEl;
+    }
+    if (slotName === 'mid') {
+      return adMidPanelEl;
+    }
+    if (slotName === 'sticky') {
+      return adStickyWrapEl;
+    }
+    return null;
+  }
+
+  function clearAdSlot(slotName) {
+    var slotEl = adSlotEls[slotName];
+    if (!slotEl) {
+      return;
+    }
+    slotEl.innerHTML = '';
+    slotEl.classList.remove('is-live');
+  }
+
+  function hideAdSlot(slotName) {
+    var container = getAdContainerEl(slotName);
+    if (container) {
+      container.hidden = true;
+    }
+    clearAdSlot(slotName);
+  }
+
+  function showAdSlot(slotName) {
+    if (slotName === 'sticky' && adStickyDismissed) {
+      return;
+    }
+    var container = getAdContainerEl(slotName);
+    var slotEl = adSlotEls[slotName];
+    if (container) {
+      container.hidden = false;
+    }
+    if (slotEl) {
+      slotEl.classList.add('is-live');
+    }
+  }
+
+  function hideAllAds() {
+    hideAdSlot('top');
+    hideAdSlot('mid');
+    hideAdSlot('sticky');
+  }
+
+  function shouldShowStickyAd() {
+    if (!adSettings.layout.sticky_mobile_only) {
+      return true;
+    }
+    return window.matchMedia('(max-width: 980px)').matches;
+  }
+
+  function syncStickyAdVisibility() {
+    var stickySlot = adSlotEls.sticky;
+    if (!stickySlot || !stickySlot.querySelector('ins')) {
+      hideAdSlot('sticky');
+      return;
+    }
+    if (adStickyDismissed) {
+      hideAdSlot('sticky');
+      return;
+    }
+    if (shouldShowStickyAd()) {
+      showAdSlot('sticky');
+    } else if (adStickyWrapEl) {
+      adStickyWrapEl.hidden = true;
+    }
+  }
+
+  function loadExternalScript(id, src, attrs) {
+    attrs = attrs || {};
+    return new Promise(function (resolve, reject) {
+      var existing = document.getElementById(id);
+      if (existing) {
+        if (existing.getAttribute('data-loaded') === 'true') {
+          resolve();
+          return;
+        }
+        existing.addEventListener('load', function () {
+          existing.setAttribute('data-loaded', 'true');
+          resolve();
+        }, { once: true });
+        existing.addEventListener('error', function () {
+          reject(new Error('script load failed: ' + id));
+        }, { once: true });
+        return;
+      }
+
+      var script = document.createElement('script');
+      script.id = id;
+      script.async = true;
+      script.src = src;
+      for (var key in attrs) {
+        if (Object.prototype.hasOwnProperty.call(attrs, key)) {
+          script.setAttribute(key, attrs[key]);
+        }
+      }
+      script.onload = function () {
+        script.setAttribute('data-loaded', 'true');
+        resolve();
+      };
+      script.onerror = function () {
+        reject(new Error('script load failed: ' + id));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  function mountAdsenseSlot(slotName, slotConfig) {
+    var slotEl = adSlotEls[slotName];
+    if (!slotEl || !slotConfig.enabled || !slotConfig.slot_id) {
+      hideAdSlot(slotName);
+      return;
+    }
+    if (slotName === 'sticky' && !shouldShowStickyAd()) {
+      hideAdSlot(slotName);
+      return;
+    }
+
+    slotEl.innerHTML = '';
+    var ins = document.createElement('ins');
+    ins.className = 'adsbygoogle';
+    ins.style.display = 'block';
+    ins.setAttribute('data-ad-client', adSettings.client_id);
+    ins.setAttribute('data-ad-slot', slotConfig.slot_id);
+    ins.setAttribute('data-ad-format', 'auto');
+    ins.setAttribute('data-full-width-responsive', 'true');
+    if (adSettings.ad_test) {
+      ins.setAttribute('data-adtest', 'on');
+    }
+    slotEl.appendChild(ins);
+    showAdSlot(slotName);
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      if (slotName === 'sticky') {
+        syncStickyAdVisibility();
+      }
+    } catch (err) {
+      hideAdSlot(slotName);
+    }
+  }
+
+  function renderAdsenseAds() {
+    if (!adSettings.client_id) {
+      hideAllAds();
+      return;
+    }
+
+    var src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(adSettings.client_id);
+    loadExternalScript('adsense-lib', src, { crossorigin: 'anonymous' })
+      .then(function () {
+        mountAdsenseSlot('top', adSettings.slots.top);
+        mountAdsenseSlot('mid', adSettings.slots.mid);
+        mountAdsenseSlot('sticky', adSettings.slots.sticky);
+      })
+      .catch(function () {
+        hideAllAds();
+      });
+  }
+
+  function mountAdfitSlot(slotName, slotConfig) {
+    var slotEl = adSlotEls[slotName];
+    if (!slotEl || !slotConfig.enabled || !slotConfig.unit) {
+      hideAdSlot(slotName);
+      return false;
+    }
+    if (slotName === 'sticky' && !shouldShowStickyAd()) {
+      hideAdSlot(slotName);
+      return false;
+    }
+
+    slotEl.innerHTML = '';
+    var ins = document.createElement('ins');
+    ins.className = 'kakao_ad_area';
+    ins.style.display = 'none';
+    ins.setAttribute('data-ad-unit', slotConfig.unit);
+    ins.setAttribute('data-ad-width', String(slotConfig.width));
+    ins.setAttribute('data-ad-height', String(slotConfig.height));
+    slotEl.appendChild(ins);
+    showAdSlot(slotName);
+    if (slotName === 'sticky') {
+      syncStickyAdVisibility();
+    }
+    return true;
+  }
+
+  function renderAdfitAds() {
+    var hasAny = false;
+    hasAny = mountAdfitSlot('top', adSettings.slots.top) || hasAny;
+    hasAny = mountAdfitSlot('mid', adSettings.slots.mid) || hasAny;
+    hasAny = mountAdfitSlot('sticky', adSettings.slots.sticky) || hasAny;
+    if (!hasAny) {
+      hideAllAds();
+      return;
+    }
+    loadExternalScript('adfit-lib', 'https://t1.daumcdn.net/kas/static/ba.min.js')
+      .catch(function () {
+        hideAllAds();
+      });
+  }
+
+  function initAds(rawAds) {
+    adSettings = normalizeAdSettings(rawAds);
+    hideAllAds();
+    if (!adSettings.enabled) {
+      return;
+    }
+    if (adSettings.provider === 'adsense') {
+      renderAdsenseAds();
+      return;
+    }
+    if (adSettings.provider === 'adfit') {
+      renderAdfitAds();
+    }
+  }
+
   function formatStrategyOptions(options) {
     var active = [];
     var opts = options || {};
@@ -1541,6 +1927,22 @@
       }
       return res.json();
     });
+  }
+
+  function loadMetaConfig() {
+    fetchJson('/meta')
+      .then(function (data) {
+        if (data && data.strategy_labels && typeof data.strategy_labels === 'object') {
+          strategyLabels = data.strategy_labels;
+        }
+        if (data && data.strategy_options && typeof data.strategy_options === 'object') {
+          strategyOptionLabels = data.strategy_options;
+        }
+        initAds(data ? data.ads : null);
+      })
+      .catch(function () {
+        initAds(null);
+      });
   }
 
   function loadDraws() {
@@ -1732,6 +2134,18 @@
 
   document.getElementById('runBtn').addEventListener('click', runGames);
   document.getElementById('syncBtn').addEventListener('click', syncDraws);
+  if (adStickyCloseEl) {
+    adStickyCloseEl.addEventListener('click', function () {
+      adStickyDismissed = true;
+      try {
+        window.sessionStorage.setItem(AD_STICKY_DISMISS_KEY, '1');
+      } catch (err) {
+        // ignore storage failures
+      }
+      hideAdSlot('sticky');
+    });
+  }
+  window.addEventListener('resize', syncStickyAdVisibility);
   for (var h = 0; h < strategyHelpButtons.length; h++) {
     strategyHelpButtons[h].addEventListener('click', function (event) {
       event.preventDefault();
@@ -1782,6 +2196,7 @@
   setPickSummaryEmpty();
   renderPickGrid();
   updatePickSelectionUi();
+  loadMetaConfig();
   loadDraws();
 </script>
 </body>

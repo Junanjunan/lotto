@@ -73,6 +73,96 @@ def create_app() -> FastAPI:
 
         return str(draw_date)
 
+    def env_bool(name: str, default: bool = False) -> bool:
+        raw = os.getenv(name)
+        if raw is None:
+            return default
+        normalized = raw.strip().lower()
+        if normalized in {"1", "true", "t", "yes", "y", "on"}:
+            return True
+        if normalized in {"0", "false", "f", "no", "n", "off", ""}:
+            return False
+        return default
+
+    def env_int(name: str, default: int) -> int:
+        raw = os.getenv(name)
+        if raw is None:
+            return default
+        try:
+            value = int(raw.strip())
+            return value if value > 0 else default
+        except ValueError:
+            return default
+
+    def env_str(name: str) -> str:
+        return os.getenv(name, "").strip()
+
+    def build_ads_meta() -> dict:
+        provider = env_str("AD_PROVIDER").lower() or "none"
+        if provider not in {"none", "adsense", "adfit"}:
+            provider = "none"
+
+        enabled = env_bool("AD_ENABLED", default=(provider != "none"))
+        ad_test = env_bool("AD_TEST_MODE", default=False)
+        sticky_mobile_only = env_bool("AD_STICKY_MOBILE_ONLY", default=True)
+
+        slots = {
+            "top": {"enabled": False},
+            "mid": {"enabled": False},
+            "sticky": {"enabled": False},
+        }
+        result = {
+            "enabled": False,
+            "provider": provider,
+            "ad_test": ad_test,
+            "client_id": "",
+            "layout": {
+                "sticky_mobile_only": sticky_mobile_only,
+            },
+            "slots": slots,
+        }
+
+        if not enabled or provider == "none":
+            return result
+
+        if provider == "adsense":
+            client_id = env_str("ADSENSE_CLIENT_ID")
+            if not client_id:
+                return result
+            result["client_id"] = client_id
+            slot_env_map = {
+                "top": "ADSENSE_SLOT_TOP",
+                "mid": "ADSENSE_SLOT_MID",
+                "sticky": "ADSENSE_SLOT_STICKY",
+            }
+            for slot_name, env_name in slot_env_map.items():
+                slot_id = env_str(env_name)
+                if slot_id:
+                    slots[slot_name] = {
+                        "enabled": True,
+                        "slot_id": slot_id,
+                    }
+            result["enabled"] = any(slot["enabled"] for slot in slots.values())
+            return result
+
+        slot_env_map = {
+            "top": ("ADFIT_UNIT_TOP", "ADFIT_WIDTH_TOP", "ADFIT_HEIGHT_TOP", 728, 90),
+            "mid": ("ADFIT_UNIT_MID", "ADFIT_WIDTH_MID", "ADFIT_HEIGHT_MID", 728, 90),
+            "sticky": ("ADFIT_UNIT_STICKY", "ADFIT_WIDTH_STICKY", "ADFIT_HEIGHT_STICKY", 320, 100),
+        }
+        for slot_name, (unit_env, width_env, height_env, default_width, default_height) in slot_env_map.items():
+            unit = env_str(unit_env)
+            if not unit:
+                continue
+            slots[slot_name] = {
+                "enabled": True,
+                "unit": unit,
+                "width": env_int(width_env, default_width),
+                "height": env_int(height_env, default_height),
+            }
+        result["enabled"] = any(slot["enabled"] for slot in slots.values())
+        return result
+
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
@@ -96,6 +186,7 @@ def create_app() -> FastAPI:
             "strategy_labels": STRATEGY_LABELS,
             "strategy_descriptions": STRATEGY_DESCRIPTIONS,
             "strategy_options": STRATEGY_OPTION_LABELS,
+            "ads": build_ads_meta(),
         }
 
     @app.get("/")
