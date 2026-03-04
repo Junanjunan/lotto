@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 from pydantic import Field
@@ -26,11 +26,21 @@ class StrategyOptions(BaseModel):
     sum_band_100_170: bool = False
     avoid_same_last_digit_cluster: bool = False
     avoid_arithmetic_sequence: bool = False
+    zone_coverage_min: Optional[int] = Field(default=None, ge=0, le=5)
+    consecutive_pair_mode: Optional[Literal["any", "none", "one_or_two"]] = None
+    consecutive_pair_max: Optional[int] = Field(default=None, ge=0, le=5)
+    sum_min: Optional[int] = Field(default=None, ge=21, le=260)
+    sum_max: Optional[int] = Field(default=None, ge=21, le=260)
+    span_min: Optional[int] = Field(default=None, ge=0, le=44)
+    span_max: Optional[int] = Field(default=None, ge=0, le=44)
+    hot_cold_window: Optional[int] = Field(default=None, ge=5, le=260)
+    hot_cold_alpha: Optional[float] = Field(default=None, ge=0.1, le=5.0)
+    hot_mix_ratio: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
 class GenerateRequest(BaseModel):
     game_count: int = Field(..., ge=1, description="Number of game sets to generate")
-    strategy: str = "low_overlap_random"
+    strategy: str = "balanced_quickpick"
     seed: Optional[int] = None
     options: StrategyOptions = Field(default_factory=StrategyOptions)
 
@@ -44,6 +54,17 @@ class GameCreateResponse(BaseModel):
     seed: Optional[int]
     evaluated_until: int
     games: list[dict]
+
+
+class CompareStrategyRequest(BaseModel):
+    strategy: str
+    options: StrategyOptions = Field(default_factory=StrategyOptions)
+
+
+class CompareRequest(BaseModel):
+    game_count: int = Field(..., ge=1, description="Number of game sets per strategy")
+    seed: Optional[int] = None
+    strategies: list[CompareStrategyRequest] = Field(..., min_length=1, max_length=8)
 
 
 class NumberCheckRequest(BaseModel):

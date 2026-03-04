@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse
 from app.config import Settings
 from app.db import Database
 from app.schemas import (
+    CompareRequest,
     GenerateRequest,
     GameCreateResponse,
     NumberCheckRequest,
@@ -20,9 +21,18 @@ from app.schemas import (
     SyncResponse,
 )
 from app.services.crawler import LotteryCrawler
-from app.services.strategies import STRATEGIES, STRATEGY_DESCRIPTIONS, STRATEGY_LABELS, STRATEGY_OPTION_LABELS, generate_games_with_options
-from app.services.sync_service import SyncService
 from app.services.evaluator import evaluate_games as _evaluate
+from app.services.strategy_stats import LotteryStatsService
+from app.services.strategies import (
+    STRATEGIES,
+    STRATEGY_CATALOG,
+    STRATEGY_DESCRIPTIONS,
+    STRATEGY_LABELS,
+    STRATEGY_OPTION_LABELS,
+    STRATEGY_OPTION_SCHEMA,
+    generate_games_with_options,
+)
+from app.services.sync_service import SyncService
 
 
 def create_app() -> FastAPI:
@@ -43,6 +53,7 @@ def create_app() -> FastAPI:
 
     crawler = LotteryCrawler(settings)
     sync_service = SyncService(settings, db, crawler)
+    stats_service = LotteryStatsService()
 
     app_dir = Path(__file__).resolve().parent
     ui_index_path = app_dir / "static" / "index.html"
@@ -163,6 +174,36 @@ def create_app() -> FastAPI:
         result["enabled"] = any(slot["enabled"] for slot in slots.values())
         return result
 
+    def dump_model(model: object, *, exclude_unset: bool = False) -> dict:
+        if hasattr(model, "model_dump"):
+            return model.model_dump(exclude_unset=exclude_unset)  # type: ignore[union-attr]
+        if hasattr(model, "dict"):
+            return model.dict(exclude_unset=exclude_unset)  # type: ignore[union-attr]
+        return {}
+
+    def summarize_rank_distribution(games: list[dict]) -> dict[int, int]:
+        summary = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        for game in games:
+            dist = game.get("rank_distribution", {})
+            for rank in summary:
+                summary[rank] += int(dist.get(rank, 0))
+        return {rank: count for rank, count in summary.items() if count > 0}
+
+    def compute_diversity_score(games: list[list[int]]) -> float:
+        if len(games) < 2:
+            return 1.0
+        total_overlap = 0.0
+        pair_count = 0
+        for i in range(len(games)):
+            left = set(games[i])
+            for j in range(i + 1, len(games)):
+                right = set(games[j])
+                total_overlap += len(left & right) / 6.0
+                pair_count += 1
+        if pair_count == 0:
+            return 1.0
+        return round(max(0.0, 1.0 - (total_overlap / pair_count)), 4)
+
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
@@ -178,14 +219,18 @@ def create_app() -> FastAPI:
                 "/api/sync",
                 "/api/draws",
                 "/api/games",
+                "/api/games/compare",
                 "/api/games/{id}",
                 "/api/number-check",
+                "/api/stats/lottery",
                 "/api/sync/runs",
             ],
             "strategies": list(STRATEGIES.keys()),
+            "strategy_catalog": STRATEGY_CATALOG,
             "strategy_labels": STRATEGY_LABELS,
             "strategy_descriptions": STRATEGY_DESCRIPTIONS,
             "strategy_options": STRATEGY_OPTION_LABELS,
+            "strategy_option_schema": STRATEGY_OPTION_SCHEMA,
             "ads": build_ads_meta(),
         }
 
@@ -260,13 +305,14 @@ def create_app() -> FastAPI:
         if request.strategy not in STRATEGIES:
             raise HTTPException(status_code=400, detail="Unknown strategy")
 
-        options = request.options.model_dump() if hasattr(request.options, "model_dump") else request.options.dict()
+        options = dump_model(request.options, exclude_unset=True)
         try:
             games, normalized_options = generate_games_with_options(
                 request.strategy,
                 request.game_count,
                 request.seed,
                 options,
+                draws=available_draws,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
@@ -310,6 +356,62 @@ def create_app() -> FastAPI:
             ],
         )
 
+    @app.post("/api/games/compare")
+    def compare_games(request: CompareRequest):
+        draws = db.fetch_draws()
+        if not draws:
+            raise HTTPException(status_code=400, detail="No draw history in DB. Run /api/sync first.")
+
+        results: list[dict] = []
+        for item in request.strategies:
+            if item.strategy not in STRATEGIES:
+                raise HTTPException(status_code=400, detail=f"Unknown strategy: {item.strategy}")
+
+            options = dump_model(item.options, exclude_unset=True)
+            try:
+                games, normalized_options = generate_games_with_options(
+                    strategy_name=item.strategy,
+                    game_count=request.game_count,
+                    seed=request.seed,
+                    options=options,
+                    draws=draws,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=f"{item.strategy}: {exc}")
+
+            evaluated = _evaluate(games, draws)
+            rank_distribution = summarize_rank_distribution(evaluated)
+            total_hits = sum(rank_distribution.values())
+
+            results.append(
+                {
+                    "strategy": item.strategy,
+                    "strategy_label": STRATEGY_LABELS.get(item.strategy, item.strategy),
+                    "strategy_options": normalized_options,
+                    "game_count": request.game_count,
+                    "total_hits": total_hits,
+                    "rank_distribution": rank_distribution,
+                    "diversity_score": compute_diversity_score(games),
+                    "games": [
+                        {
+                            "game_index": g["game_index"],
+                            "numbers": g["numbers"],
+                            "rank_distribution": g["rank_distribution"],
+                            "total_hits": g["total_hits"],
+                        }
+                        for g in evaluated
+                    ],
+                }
+            )
+
+        return {
+            "evaluated_until": draws[-1].draw_no,
+            "game_count": request.game_count,
+            "seed": request.seed,
+            "result_count": len(results),
+            "results": results,
+        }
+
     @app.post("/api/number-check", response_model=NumberCheckResponse)
     def check_numbers(request: NumberCheckRequest):
         draws = db.fetch_draws()
@@ -347,6 +449,13 @@ def create_app() -> FastAPI:
             total_hits=game["total_hits"],
             hits=hits,
         )
+
+    @app.get("/api/stats/lottery")
+    def lottery_stats():
+        draws = db.fetch_draws()
+        if not draws:
+            raise HTTPException(status_code=400, detail="No draw history in DB. Run /api/sync first.")
+        return stats_service.build(draws)
 
     @app.get("/api/games")
     def list_game_runs():

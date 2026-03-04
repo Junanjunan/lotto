@@ -225,6 +225,53 @@
       gap: 10px;
     }
 
+    .btn-row.single {
+      grid-template-columns: 1fr;
+    }
+
+    .advanced-options {
+      margin-top: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: #f7fbf9;
+      padding: 8px 10px;
+    }
+
+    .advanced-options summary {
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: #1c4e53;
+      list-style: none;
+      user-select: none;
+    }
+
+    .advanced-options summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .advanced-options summary::before {
+      content: "▶";
+      display: inline-block;
+      margin-right: 6px;
+      font-size: 0.72rem;
+      transition: transform 120ms ease;
+    }
+
+    .advanced-options[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .advanced-options-body {
+      margin-top: 8px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .advanced-options .field {
+      margin: 0;
+    }
+
     button {
       height: 42px;
       border-radius: 11px;
@@ -896,6 +943,90 @@
       line-height: 1.4;
     }
 
+    .guide-box {
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      border: 1px solid #c4d9d1;
+      border-radius: 12px;
+      background: #f5fbf8;
+      color: #33555c;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .stats-grid {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .stats-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 10px 12px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .stats-card h3 {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #1a444a;
+    }
+
+    .stats-kv {
+      margin: 0;
+      color: #33555c;
+      font-size: 0.83rem;
+      line-height: 1.45;
+    }
+
+    .metric-help {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-left: 5px;
+      border-radius: 999px;
+      border: 1px solid #9ec3b7;
+      background: #f0faf6;
+      color: #1f5f53;
+      font-size: 0.68rem;
+      font-weight: 900;
+      vertical-align: middle;
+      cursor: help;
+      line-height: 1;
+    }
+
+    .beginner-guide {
+      border-color: #8ec5b5;
+      background: #e8f8f1;
+      color: #134c46;
+      font-weight: 700;
+    }
+
+    .recommend-row td {
+      background: #eaf7f1;
+    }
+
+    .recommend-badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #88bda9;
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin-left: 6px;
+      background: #dff4ea;
+      color: #175347;
+      font-size: 0.72rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
     @keyframes rise-in {
       from {
         opacity: 0;
@@ -961,6 +1092,10 @@
         grid-template-columns: repeat(5, minmax(0, 1fr));
       }
 
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
       .pick-tools {
         align-items: stretch;
       }
@@ -1024,6 +1159,8 @@
 
     <section class="panel tab-nav">
       <button id="tabGenerateBtn" class="tab-btn active" aria-selected="true">전략 게임 생성</button>
+      <button id="tabCompareBtn" class="tab-btn" aria-selected="false">전략 비교 실험실</button>
+      <button id="tabStatsBtn" class="tab-btn" aria-selected="false">통계 대시보드</button>
       <button id="tabNumberCheckBtn" class="tab-btn" aria-selected="false">번호 6개 직접 검증</button>
     </section>
 
@@ -1034,15 +1171,20 @@
             게임 수
             <input id="gameCount" type="number" min="1" value="5" />
           </label>
-          <label class="field">
-            시드
-            <input id="seed" type="number" placeholder="선택: 1.." />
-          </label>
-          <div class="btn-row">
-            <button id="runBtn" class="btn-primary">게임 생성</button>
+          <div class="btn-row single">
             <button id="syncBtn" class="btn-secondary">동기화 실행</button>
           </div>
         </div>
+        <details class="advanced-options">
+          <summary>고급 옵션</summary>
+          <div class="advanced-options-body">
+            <label class="field">
+              시드(결과 재현용)
+              <input id="seed" type="number" placeholder="선택: 1.." />
+            </label>
+            <p class="small">같은 전략/옵션/게임 수에서 시드를 같게 입력하면 같은 결과를 다시 만들 수 있습니다.</p>
+          </div>
+        </details>
 
         <div class="options-row strategy-row">
           <div class="strategy-item help-item">
@@ -1300,9 +1442,100 @@
       </section>
 
       <section class="panel">
-        <h2>생성 결과</h2>
+        <div class="section-head">
+          <h2>생성 결과</h2>
+          <button id="runBtn" class="btn-primary">게임 생성</button>
+        </div>
         <div id="results" class="results-wrap">
           <p class="empty">아직 생성된 게임이 없습니다.</p>
+        </div>
+      </section>
+    </section>
+
+    <section id="tabComparePanel" class="tab-panel">
+      <section class="panel controls">
+        <div class="control-top">
+          <label class="field">
+            게임 수
+            <input id="compareGameCount" type="number" min="1" value="5" />
+          </label>
+          <label class="field">
+            시드
+            <input id="compareSeed" type="number" placeholder="선택: 1.." />
+          </label>
+          <div class="btn-row">
+            <button id="compareRunBtn" class="btn-primary">전략 비교 실행</button>
+            <button id="compareResetBtn" class="btn-secondary">선택 초기화</button>
+          </div>
+        </div>
+
+        <div class="options-row strategy-row">
+          <label class="option-box strategy-box">
+            <input class="compare-strategy-check" type="checkbox" data-strategy="balanced_quickpick" checked />
+            <span class="strategy-box-content">
+              <span class="strategy-title">균형 퀵픽</span>
+              <span class="strategy-desc">분포형 제약을 적용한 기본 전략</span>
+            </span>
+          </label>
+          <label class="option-box strategy-box">
+            <input class="compare-strategy-check" type="checkbox" data-strategy="zone_spread" checked />
+            <span class="strategy-box-content">
+              <span class="strategy-title">구간 분산</span>
+              <span class="strategy-desc">구간 커버를 넓혀 쏠림을 완화</span>
+            </span>
+          </label>
+          <label class="option-box strategy-box">
+            <input class="compare-strategy-check" type="checkbox" data-strategy="sum_span_guard" checked />
+            <span class="strategy-box-content">
+              <span class="strategy-title">합/스팬 가드</span>
+              <span class="strategy-desc">극단 조합을 줄이는 안정형</span>
+            </span>
+          </label>
+          <label class="option-box strategy-box">
+            <input class="compare-strategy-check" type="checkbox" data-strategy="hot_focus" />
+            <span class="strategy-box-content">
+              <span class="strategy-title">최근 강세 중심</span>
+              <span class="strategy-desc">최근 빈도 가중치를 반영</span>
+            </span>
+          </label>
+          <label class="option-box strategy-box">
+            <input class="compare-strategy-check" type="checkbox" data-strategy="cold_focus" />
+            <span class="strategy-box-content">
+              <span class="strategy-title">미출현 중심</span>
+              <span class="strategy-desc">미출현 회차가 긴 번호 가중</span>
+            </span>
+          </label>
+          <label class="option-box strategy-box">
+            <input class="compare-strategy-check" type="checkbox" data-strategy="portfolio_diversify_v2" />
+            <span class="strategy-box-content">
+              <span class="strategy-title">중복 최소 강화</span>
+              <span class="strategy-desc">게임 간 중복 페널티 강화</span>
+            </span>
+          </label>
+        </div>
+
+        <div id="compareSummary" class="chips">
+          <span class="chip chip-muted">비교 전략을 선택 후 실행하세요.</span>
+        </div>
+        <p class="guide-box">`누적 당첨`은 모든 게임의 1~5등 횟수 합계입니다. `다양성 점수`는 게임끼리 숫자 겹침이 적을수록 높습니다(1에 가까울수록 분산이 잘됨).</p>
+        <p id="compareBeginnerGuide" class="guide-box beginner-guide">초보자 모드: 처음에는 `균형 퀵픽`으로 시작하고, 그 다음 `구간 분산`과 비교해 보세요.</p>
+        <div id="compareResult" class="results-wrap">
+          <p class="empty">전략별 비교 결과가 여기에 표시됩니다.</p>
+        </div>
+      </section>
+    </section>
+
+    <section id="tabStatsPanel" class="tab-panel">
+      <section class="panel controls">
+        <div class="btn-row">
+          <button id="statsLoadBtn" class="btn-primary">통계 불러오기</button>
+        </div>
+        <div id="statsSummary" class="chips">
+          <span class="chip chip-muted">통계를 불러오면 요약이 표시됩니다.</span>
+        </div>
+        <p class="guide-box">통계는 예측이 아니라 과거 분포 요약입니다. `번호 빈도`는 과거 출현 횟수, `미출현`은 최근 몇 회 동안 안 나온 길이입니다.</p>
+        <div id="statsResult" class="results-wrap">
+          <p class="empty">통계 결과가 여기에 표시됩니다.</p>
         </div>
       </section>
     </section>
@@ -1359,9 +1592,23 @@
   var summaryEl = document.getElementById('summary');
   var resultEl = document.getElementById('results');
   var tabGenerateBtnEl = document.getElementById('tabGenerateBtn');
+  var tabCompareBtnEl = document.getElementById('tabCompareBtn');
+  var tabStatsBtnEl = document.getElementById('tabStatsBtn');
   var tabNumberCheckBtnEl = document.getElementById('tabNumberCheckBtn');
   var tabGeneratePanelEl = document.getElementById('tabGeneratePanel');
+  var tabComparePanelEl = document.getElementById('tabComparePanel');
+  var tabStatsPanelEl = document.getElementById('tabStatsPanel');
   var tabNumberCheckPanelEl = document.getElementById('tabNumberCheckPanel');
+  var compareGameCountEl = document.getElementById('compareGameCount');
+  var compareSeedEl = document.getElementById('compareSeed');
+  var compareRunBtnEl = document.getElementById('compareRunBtn');
+  var compareResetBtnEl = document.getElementById('compareResetBtn');
+  var compareSummaryEl = document.getElementById('compareSummary');
+  var compareBeginnerGuideEl = document.getElementById('compareBeginnerGuide');
+  var compareResultEl = document.getElementById('compareResult');
+  var statsLoadBtnEl = document.getElementById('statsLoadBtn');
+  var statsSummaryEl = document.getElementById('statsSummary');
+  var statsResultEl = document.getElementById('statsResult');
   var pickGridEl = document.getElementById('pickGrid');
   var pickSelectedEl = document.getElementById('pickSelected');
   var pickCountEl = document.getElementById('pickCount');
@@ -1448,13 +1695,22 @@
   }
 
   function switchTab(tabName) {
-    var isGenerate = tabName !== 'number-check';
-    tabGeneratePanelEl.classList.toggle('active', isGenerate);
-    tabNumberCheckPanelEl.classList.toggle('active', !isGenerate);
-    tabGenerateBtnEl.classList.toggle('active', isGenerate);
-    tabNumberCheckBtnEl.classList.toggle('active', !isGenerate);
-    tabGenerateBtnEl.setAttribute('aria-selected', isGenerate ? 'true' : 'false');
-    tabNumberCheckBtnEl.setAttribute('aria-selected', isGenerate ? 'false' : 'true');
+    var tabs = {
+      'generate': { btn: tabGenerateBtnEl, panel: tabGeneratePanelEl },
+      'compare': { btn: tabCompareBtnEl, panel: tabComparePanelEl },
+      'stats': { btn: tabStatsBtnEl, panel: tabStatsPanelEl },
+      'number-check': { btn: tabNumberCheckBtnEl, panel: tabNumberCheckPanelEl }
+    };
+    for (var key in tabs) {
+      if (!Object.prototype.hasOwnProperty.call(tabs, key)) {
+        continue;
+      }
+      var item = tabs[key];
+      var active = key === tabName;
+      item.panel.classList.toggle('active', active);
+      item.btn.classList.toggle('active', active);
+      item.btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    }
   }
 
   function renderNumberBalls(nums, extraClass, bonus) {
@@ -2119,6 +2375,252 @@
       });
   }
 
+  function getSelectedCompareStrategies() {
+    var checks = document.querySelectorAll('.compare-strategy-check:checked');
+    var out = [];
+    for (var i = 0; i < checks.length; i++) {
+      var strategy = checks[i].getAttribute('data-strategy');
+      if (strategy) {
+        out.push(strategy);
+      }
+    }
+    return out;
+  }
+
+  function resetCompareSelection() {
+    var checks = document.querySelectorAll('.compare-strategy-check');
+    for (var i = 0; i < checks.length; i++) {
+      checks[i].checked = i < 3;
+    }
+    compareSummaryEl.innerHTML = '<span class="chip chip-muted">비교 전략을 선택 후 실행하세요.</span>';
+    compareResultEl.innerHTML = '<p class="empty">전략별 비교 결과가 여기에 표시됩니다.</p>';
+    compareBeginnerGuideEl.textContent = '초보자 모드: 처음에는 균형 퀵픽으로 시작하고, 그 다음 구간 분산과 비교해 보세요.';
+  }
+
+  function escapeHtmlAttr(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function withMetricTip(label, tip) {
+    if (!tip) {
+      return label;
+    }
+    return label + '<span class="metric-help" title="' + escapeHtmlAttr(tip) + '" aria-label="' + escapeHtmlAttr(tip) + '">?</span>';
+  }
+
+  function getRecommendedCompareIndex(results) {
+    if (!results || results.length === 0) {
+      return -1;
+    }
+
+    var bestIndex = 0;
+    for (var i = 1; i < results.length; i++) {
+      var cur = results[i];
+      var best = results[bestIndex];
+      var curHits = Number(cur.total_hits || 0);
+      var bestHits = Number(best.total_hits || 0);
+      var curDiversity = Number(cur.diversity_score || 0);
+      var bestDiversity = Number(best.diversity_score || 0);
+      if (curHits > bestHits || (curHits === bestHits && curDiversity > bestDiversity)) {
+        bestIndex = i;
+      }
+    }
+    return bestIndex;
+  }
+
+  function updateCompareBeginnerGuide(results, recommendedIndex) {
+    if (!results || recommendedIndex < 0 || !results[recommendedIndex]) {
+      compareBeginnerGuideEl.textContent = '초보자 모드: 처음에는 균형 퀵픽으로 시작하고, 그 다음 구간 분산과 비교해 보세요.';
+      return;
+    }
+    var picked = results[recommendedIndex];
+    var label = picked.strategy_label || picked.strategy;
+    compareBeginnerGuideEl.innerHTML =
+      '초보자 모드 추천: 이번 조건에서는 <strong>' + label + '</strong>부터 시작하세요. ' +
+      '기준은 누적 당첨(1~5등) 우선, 동률이면 다양성 점수입니다.';
+  }
+
+  function renderCompareResultTable(data, recommendedIndex) {
+    if (!data || !data.results || data.results.length === 0) {
+      return '<p class="empty">비교할 결과가 없습니다.</p>';
+    }
+
+    var rows = '';
+    for (var i = 0; i < data.results.length; i++) {
+      var item = data.results[i];
+      var isRecommended = i === recommendedIndex;
+      var firstGame = item.games && item.games[0] ? item.games[0] : null;
+      var preview = firstGame && firstGame.numbers ? renderNumberBalls(firstGame.numbers, 'sm') : '-';
+      var badge = isRecommended ? '<span class="recommend-badge">추천</span>' : '';
+      rows += '<tr class="' + (isRecommended ? 'recommend-row' : '') + '">' +
+        '<td>' + (item.strategy_label || item.strategy) + badge + '</td>' +
+        '<td>' + item.total_hits + '</td>' +
+        '<td>' + formatDistributionText(item.rank_distribution) + '</td>' +
+        '<td>' + item.diversity_score + '</td>' +
+        '<td>' + preview + '</td>' +
+        '</tr>';
+    }
+
+    return '' +
+      '<div class="small" style="margin:0 0 8px 0;">전략별 한눈에 비교: 누적 당첨/등수 분포/분산도를 함께 확인하세요.</div>' +
+      '<div class="scroll-table">' +
+      '<table class="result-table">' +
+      '<thead><tr>' +
+      '<th>' + withMetricTip('전략', '추천 배지가 있으면 현재 조건에서 우선 시도할 전략입니다.') + '</th>' +
+      '<th>' + withMetricTip('누적 당첨(1~5등)', '모든 생성 게임에서 1~5등이 나온 횟수의 총합입니다.') + '</th>' +
+      '<th>' + withMetricTip('등수 분포', '1등~5등이 각각 몇 번 나왔는지 요약합니다.') + '</th>' +
+      '<th>' + withMetricTip('다양성 점수', '게임끼리 번호가 덜 겹칠수록 높습니다. 1에 가까울수록 분산이 좋습니다.') + '</th>' +
+      '<th>' + withMetricTip('예시 조합(1게임)', '해당 전략이 만든 실제 번호 예시입니다.') + '</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '</table>' +
+      '</div>';
+  }
+
+  function renderTopFrequencyTable(items, title, titleTip, valueLabel, valueTip, valueKey) {
+    var rows = '';
+    for (var i = 0; i < items.length; i++) {
+      rows += '<tr>' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td>' + items[i].number + '</td>' +
+        '<td>' + items[i][valueKey] + '</td>' +
+        '</tr>';
+    }
+    return '' +
+      '<div class="stats-card">' +
+      '<h3>' + withMetricTip(title, titleTip) + '</h3>' +
+      '<div class="scroll-table">' +
+      '<table class="result-table">' +
+      '<thead><tr><th>#</th><th>번호</th><th>' + withMetricTip(valueLabel, valueTip) + '</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '</table>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function renderStatsDashboard(data) {
+    if (!data) {
+      return '<p class="empty">통계 데이터가 없습니다.</p>';
+    }
+
+    var freqTop = (data.number_frequency || []).slice(0, 5);
+    var missTop = (data.miss_streak_top || []).slice(0, 5);
+    var zone = data.zone_share_pct || {};
+    var sum = data.sum_stats || {};
+    var span = data.span_stats || {};
+    var dist = data.distribution || {};
+
+    var zoneText = '1-10: ' + (zone['1-10'] || 0) + '%, 11-20: ' + (zone['11-20'] || 0) + '%, 21-30: ' + (zone['21-30'] || 0) + '%, 31-40: ' + (zone['31-40'] || 0) + '%, 41-45: ' + (zone['41-45'] || 0) + '%';
+    var sumText = '평균 ' + (sum.mean || '-') + ' / 중앙값 ' + (sum.median || '-') + ' / p10~p90: ' + (sum.p10 || '-') + ' ~ ' + (sum.p90 || '-');
+    var spanText = '평균 ' + (span.mean || '-') + ' / 중앙값 ' + (span.median || '-') + ' / p10~p90: ' + (span.p10 || '-') + ' ~ ' + (span.p90 || '-');
+    var distText = '홀짝균형 ' + (dist.odd_even_balanced_pct || 0) + '% · 고저균형 ' + (dist.high_low_balanced_pct || 0) + '% · 연속쌍포함 ' + (dist.consecutive_pair_pct || 0) + '%';
+
+    var cards = '' +
+      '<div class="stats-card"><h3>' + withMetricTip('구간 점유율', '각 번호 구간(1~10, 11~20...)이 전체 슬롯에서 차지한 비율입니다.') + '</h3><p class="stats-kv">' + zoneText + '</p></div>' +
+      '<div class="stats-card"><h3>' + withMetricTip('번호합 분포', '한 회차 6개 번호 합계의 분포입니다. p10~p90은 중간 80% 구간입니다.') + '</h3><p class="stats-kv">' + sumText + '</p></div>' +
+      '<div class="stats-card"><h3>' + withMetricTip('스팬 분포(max-min)', '한 회차에서 가장 큰 번호와 작은 번호의 차이입니다.') + '</h3><p class="stats-kv">' + spanText + '</p></div>' +
+      '<div class="stats-card"><h3>' + withMetricTip('패턴 비율', '홀짝/고저 균형과 연속쌍 포함 비율을 요약합니다.') + '</h3><p class="stats-kv">' + distText + '</p></div>';
+
+    return '' +
+      '<div class="small" style="margin:0 0 8px 0;">과거 ' + data.draw_count + '회차 기준 요약입니다.</div>' +
+      '<div class="stats-grid">' + cards + '</div>' +
+      '<div class="stats-grid">' +
+      renderTopFrequencyTable(
+        freqTop,
+        '최다 출현 Top 5',
+        '과거 데이터에서 자주 나온 번호 순위입니다.',
+        '출현 횟수',
+        '해당 번호가 당첨번호(메인 6개)로 등장한 누적 횟수입니다.',
+        'count'
+      ) +
+      renderTopFrequencyTable(
+        missTop,
+        '미출현 길이 Top 5',
+        '최근 기준으로 오랫동안 나오지 않은 번호 순위입니다.',
+        '미출현 회차',
+        '가장 최근 출현 이후 연속으로 안 나온 회차 수입니다.',
+        'miss_draws'
+      ) +
+      '</div>';
+  }
+
+  function runCompare() {
+    var gameCount = parseInt(compareGameCountEl.value || '0', 10);
+    var strategies = getSelectedCompareStrategies();
+    var seedRaw = compareSeedEl.value;
+    if (isNaN(gameCount) || gameCount < 1) {
+      setStatus('비교용 게임 수는 1 이상이어야 합니다', 'error');
+      return;
+    }
+    if (strategies.length === 0) {
+      setStatus('비교할 전략을 1개 이상 선택해 주세요', 'error');
+      return;
+    }
+
+    var body = {
+      game_count: gameCount,
+      strategies: []
+    };
+    if (seedRaw.trim()) {
+      body.seed = parseInt(seedRaw, 10);
+    }
+    for (var i = 0; i < strategies.length; i++) {
+      body.strategies.push({ strategy: strategies[i], options: {} });
+    }
+
+    setStatus('전략 비교 실행 중...', 'running');
+    fetchJson('/api/games/compare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+      .then(function (data) {
+        var chips = '';
+        chips += '<span class="chip">전략 수 ' + data.result_count + '</span>';
+        chips += '<span class="chip">게임 수 ' + data.game_count + '</span>';
+        chips += '<span class="chip">평가 기준 회차 ' + data.evaluated_until + '</span>';
+        compareSummaryEl.innerHTML = chips;
+        var recommendedIndex = getRecommendedCompareIndex(data.results || []);
+        updateCompareBeginnerGuide(data.results || [], recommendedIndex);
+        compareResultEl.innerHTML = renderCompareResultTable(data, recommendedIndex);
+        setStatus('전략 비교 완료', 'ok');
+      })
+      .catch(function (err) {
+        updateCompareBeginnerGuide([], -1);
+        compareResultEl.innerHTML = '<p class="empty">전략 비교 실패: ' + err.message + '</p>';
+        setStatus('전략 비교 실패: ' + err.message, 'error');
+      });
+  }
+
+  function loadStatsDashboard() {
+    setStatus('통계 데이터 로딩 중...', 'running');
+    fetchJson('/api/stats/lottery')
+      .then(function (data) {
+        var topFreq = data.number_frequency && data.number_frequency.length > 0 ? data.number_frequency[0] : null;
+        var topMiss = data.miss_streak_top && data.miss_streak_top.length > 0 ? data.miss_streak_top[0] : null;
+        var chips = '';
+        chips += '<span class="chip">기준 회차 ' + data.evaluated_until + '</span>';
+        chips += '<span class="chip">총 회차 ' + data.draw_count + '</span>';
+        if (topFreq) {
+          chips += '<span class="chip">최다 출현 #' + topFreq.number + ' (' + topFreq.count + '회)</span>';
+        }
+        if (topMiss) {
+          chips += '<span class="chip">최장 미출현 #' + topMiss.number + ' (' + topMiss.miss_draws + '회)</span>';
+        }
+        statsSummaryEl.innerHTML = chips;
+        statsResultEl.innerHTML = renderStatsDashboard(data);
+        setStatus('통계 데이터 로딩 완료', 'ok');
+      })
+      .catch(function (err) {
+        statsResultEl.innerHTML = '<p class="empty">통계 로딩 실패: ' + err.message + '</p>';
+        setStatus('통계 로딩 실패: ' + err.message, 'error');
+      });
+  }
+
   function runGames() {
     var gameCount = parseInt(document.getElementById('gameCount').value || '0', 10);
     var strategy = getSelectedStrategy();
@@ -2282,9 +2784,18 @@
   tabGenerateBtnEl.addEventListener('click', function () {
     switchTab('generate');
   });
+  tabCompareBtnEl.addEventListener('click', function () {
+    switchTab('compare');
+  });
+  tabStatsBtnEl.addEventListener('click', function () {
+    switchTab('stats');
+  });
   tabNumberCheckBtnEl.addEventListener('click', function () {
     switchTab('number-check');
   });
+  compareRunBtnEl.addEventListener('click', runCompare);
+  compareResetBtnEl.addEventListener('click', resetCompareSelection);
+  statsLoadBtnEl.addEventListener('click', loadStatsDashboard);
   checkNumbersBtnEl.addEventListener('click', runNumberCheck);
   clearNumbersBtnEl.addEventListener('click', clearPickSelection);
   allDrawsToggleEl.addEventListener('click', function () {
@@ -2308,6 +2819,7 @@
   });
 
   setSummaryEmpty();
+  resetCompareSelection();
   setPickSummaryEmpty();
   renderPickGrid();
   updatePickSelectionUi();
