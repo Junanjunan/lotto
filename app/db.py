@@ -152,18 +152,25 @@ class Database:
         if not draws:
             return inserted, updated, skipped
 
+        # Prevent UNIQUE constraint failures when the incoming payload contains duplicated draw_no entries.
+        # Keep the last payload value for each draw_no so later parser rows can override earlier rows.
+        uniq_by_draw_no: dict[int, Draw] = {}
+        for draw in draws:
+            uniq_by_draw_no[draw.draw_no] = draw
+        uniq_draws = list(uniq_by_draw_no.values())
+
         now = datetime.now(timezone.utc).isoformat()
         with self.connect() as conn:
-            in_clause = ",".join("?" for _ in draws)
+            in_clause = ",".join("?" for _ in uniq_draws)
             existing = {
                 row["draw_no"]: row["row_hash"]
                 for row in conn.execute(
                     f"SELECT draw_no, row_hash FROM draws WHERE draw_no IN ({in_clause})",
-                    [d.draw_no for d in draws],
+                    [d.draw_no for d in uniq_draws],
                 )
             }
 
-            for draw in draws:
+            for draw in uniq_draws:
                 hash_key = draw.hash_key
                 numbers = draw.numbers
                 if draw.draw_no not in existing:

@@ -39,6 +39,13 @@ cp .env.example .env  # 없으면 환경변수 직접 사용
 docker compose build
 ```
 
+### 재빌드 + 재시작 스크립트
+```bash
+./rebuild_restart.sh
+# 캐시 없이 다시 빌드할 때
+./rebuild_restart.sh --no-cache
+```
+
 ### 3) 실행
 ```bash
 docker compose up -d
