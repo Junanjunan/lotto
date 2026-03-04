@@ -297,9 +297,14 @@
     .strategy-box {
       border-radius: var(--radius-sm);
       align-items: flex-start;
-      padding: 12px;
+      padding: 12px 42px 12px 12px;
       background: #f6fbf9;
       width: 100%;
+    }
+
+    .strategy-item {
+      position: relative;
+      min-width: 0;
     }
 
     .strategy-box input {
@@ -332,6 +337,61 @@
     .strategy-box:has(input:checked) {
       background: #def2ed;
       border-color: #92cdbf;
+    }
+
+    .strategy-help-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid #a8bdb4;
+      background: #ffffff;
+      color: #2c5f5b;
+      font-size: 0.75rem;
+      font-weight: 800;
+      line-height: 1;
+      cursor: pointer;
+      transition: border-color 140ms ease, background-color 140ms ease, transform 120ms ease;
+    }
+
+    .strategy-help-btn:hover {
+      transform: translateY(-1px);
+      border-color: #7faf9d;
+      background: #f0faf6;
+    }
+
+    .strategy-help-btn[aria-expanded="true"] {
+      border-color: #6a9f8f;
+      background: #def2ed;
+      color: #1d5a4f;
+    }
+
+    .strategy-help-panel {
+      margin-top: 8px;
+      border: 1px solid #b9d5c9;
+      border-radius: 12px;
+      background: #f4fcf8;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      color: #2a4d4c;
+      line-height: 1.45;
+    }
+
+    .strategy-help-panel p {
+      margin: 0 0 6px 0;
+      font-weight: 700;
+      color: #1f4a47;
+    }
+
+    .strategy-help-panel ul {
+      margin: 0;
+      padding-left: 16px;
+    }
+
+    .strategy-help-panel li + li {
+      margin-top: 3px;
     }
 
     .panel-grid {
@@ -801,20 +861,56 @@
         </div>
 
         <div class="options-row strategy-row">
-          <label class="option-box strategy-box">
-            <input class="strategy-radio" id="strategyLowOverlap" name="strategy" type="radio" data-strategy="low_overlap_random" checked />
-            <span class="strategy-box-content">
-              <span class="strategy-title">중복 최소 랜덤</span>
-              <span class="strategy-desc">여러 게임의 숫자 중복을 최대한 줄여 고르게 분산합니다.</span>
-            </span>
-          </label>
-          <label class="option-box strategy-box">
-            <input class="strategy-radio" id="strategyUniform" name="strategy" type="radio" data-strategy="uniform_random" />
-            <span class="strategy-box-content">
-              <span class="strategy-title">균등 랜덤</span>
-              <span class="strategy-desc">각 게임을 완전 무작위로 생성하는 기본 랜덤 방식입니다.</span>
-            </span>
-          </label>
+          <div class="strategy-item">
+            <label class="option-box strategy-box">
+              <input class="strategy-radio" id="strategyLowOverlap" name="strategy" type="radio" data-strategy="low_overlap_random" checked />
+              <span class="strategy-box-content">
+                <span class="strategy-title">중복 최소 랜덤</span>
+                <span class="strategy-desc">여러 게임의 숫자 중복을 최대한 줄여 고르게 분산합니다.</span>
+              </span>
+            </label>
+            <button
+              class="strategy-help-btn"
+              type="button"
+              aria-label="중복 최소 랜덤 상세 설명 보기"
+              aria-expanded="false"
+              aria-controls="strategyHelpLowOverlap"
+              data-help-target="strategyHelpLowOverlap"
+            >?</button>
+            <div id="strategyHelpLowOverlap" class="strategy-help-panel" hidden>
+              <p>상세 설명</p>
+              <ul>
+                <li>여러 게임을 동시에 만들 때 각 게임 간 번호 겹침을 줄이는 데 집중합니다.</li>
+                <li>번호 풀이 넓게 퍼져 포트폴리오처럼 분산된 조합을 만들기 좋습니다.</li>
+                <li>옵션 제약을 많이 켜면 생성 가능한 조합이 줄어들어 실패할 수 있습니다.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="strategy-item">
+            <label class="option-box strategy-box">
+              <input class="strategy-radio" id="strategyUniform" name="strategy" type="radio" data-strategy="uniform_random" />
+              <span class="strategy-box-content">
+                <span class="strategy-title">균등 랜덤</span>
+                <span class="strategy-desc">각 게임을 완전 무작위로 생성하는 기본 랜덤 방식입니다.</span>
+              </span>
+            </label>
+            <button
+              class="strategy-help-btn"
+              type="button"
+              aria-label="균등 랜덤 상세 설명 보기"
+              aria-expanded="false"
+              aria-controls="strategyHelpUniform"
+              data-help-target="strategyHelpUniform"
+            >?</button>
+            <div id="strategyHelpUniform" class="strategy-help-panel" hidden>
+              <p>상세 설명</p>
+              <ul>
+                <li>각 게임을 독립적으로 무작위 추출하는 기준 전략입니다.</li>
+                <li>추가 분산 규칙 없이 순수 랜덤 성향을 확인할 때 비교 기준으로 적합합니다.</li>
+                <li>전략 효과를 비교 실험할 때 가장 중립적인 베이스라인으로 사용하기 좋습니다.</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         <div class="options-row">
@@ -968,6 +1064,7 @@
     'avoid_same_last_digit_cluster',
     'avoid_arithmetic_sequence'
   ];
+  var strategyHelpButtons = document.getElementsByClassName('strategy-help-btn');
 
   function setStatus(msg, tone) {
     statusEl.textContent = msg;
@@ -1149,6 +1246,55 @@
       avoid_same_last_digit_cluster: document.getElementById('optAvoidSameLastDigitCluster').checked,
       avoid_arithmetic_sequence: document.getElementById('optAvoidArithmeticSequence').checked
     };
+  }
+
+  function isInsideClassElement(node, className) {
+    var cur = node;
+    while (cur) {
+      if (cur.classList && cur.classList.contains(className)) {
+        return true;
+      }
+      cur = cur.parentElement;
+    }
+    return false;
+  }
+
+  function closeAllStrategyHelp() {
+    for (var i = 0; i < strategyHelpButtons.length; i++) {
+      var btn = strategyHelpButtons[i];
+      var targetId = btn.getAttribute('data-help-target');
+      btn.setAttribute('aria-expanded', 'false');
+      if (!targetId) {
+        continue;
+      }
+      var panel = document.getElementById(targetId);
+      if (panel) {
+        panel.hidden = true;
+      }
+    }
+  }
+
+  function toggleStrategyHelp(targetId) {
+    if (!targetId) {
+      return;
+    }
+    var panel = document.getElementById(targetId);
+    if (!panel) {
+      return;
+    }
+    var isOpen = !panel.hidden;
+    closeAllStrategyHelp();
+    if (isOpen) {
+      return;
+    }
+    panel.hidden = false;
+    for (var i = 0; i < strategyHelpButtons.length; i++) {
+      var btn = strategyHelpButtons[i];
+      if (btn.getAttribute('data-help-target') === targetId) {
+        btn.setAttribute('aria-expanded', 'true');
+        break;
+      }
+    }
   }
 
   function formatStrategyOptions(options) {
@@ -1437,6 +1583,24 @@
 
   document.getElementById('runBtn').addEventListener('click', runGames);
   document.getElementById('syncBtn').addEventListener('click', syncDraws);
+  for (var h = 0; h < strategyHelpButtons.length; h++) {
+    strategyHelpButtons[h].addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleStrategyHelp(this.getAttribute('data-help-target'));
+    });
+  }
+  document.addEventListener('click', function (event) {
+    if (isInsideClassElement(event.target, 'strategy-item')) {
+      return;
+    }
+    closeAllStrategyHelp();
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      closeAllStrategyHelp();
+    }
+  });
   tabGenerateBtnEl.addEventListener('click', function () {
     switchTab('generate');
   });
