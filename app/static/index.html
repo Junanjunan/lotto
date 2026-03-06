@@ -998,8 +998,9 @@
       font-size: 0.68rem;
       font-weight: 900;
       vertical-align: middle;
-      cursor: help;
+      cursor: pointer;
       line-height: 1;
+      padding: 0;
     }
 
     .beginner-guide {
@@ -2409,7 +2410,7 @@
     if (!tip) {
       return label;
     }
-    return label + '<span class="metric-help" title="' + escapeHtmlAttr(tip) + '" aria-label="' + escapeHtmlAttr(tip) + '">?</span>';
+    return label + '<button type="button" class="metric-help" data-tip="' + escapeHtmlAttr(tip) + '" aria-label="' + escapeHtmlAttr(tip) + '">?</button>';
   }
 
   function getRecommendedCompareIndex(results) {
@@ -2771,6 +2772,14 @@
     });
   }
   document.addEventListener('click', function (event) {
+    var target = event.target;
+    if (target && target.classList && target.classList.contains('metric-help')) {
+      event.preventDefault();
+      event.stopPropagation();
+      var tip = target.getAttribute('data-tip') || target.getAttribute('aria-label') || '설명 정보가 없습니다.';
+      window.alert(tip);
+      return;
+    }
     if (isInsideClassElement(event.target, 'help-item')) {
       return;
     }
