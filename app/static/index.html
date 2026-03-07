@@ -585,6 +585,25 @@
       gap: 10px;
     }
 
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .share-actions {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .share-hint {
+      margin: 8px 0 0;
+    }
+
     .inline-toggle {
       width: 36px;
       height: 36px;
@@ -1089,6 +1108,15 @@
         width: 100%;
       }
 
+      .section-head {
+        align-items: flex-start;
+      }
+
+      .section-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
       .pick-grid {
         grid-template-columns: repeat(5, minmax(0, 1fr));
       }
@@ -1445,7 +1473,15 @@
       <section class="panel">
         <div class="section-head">
           <h2>생성 결과</h2>
-          <button id="runBtn" class="btn-primary">게임 생성</button>
+          <div class="section-actions">
+            <button id="runBtn" class="btn-primary">게임 생성</button>
+          </div>
+        </div>
+        <p id="shareHint" class="muted share-hint">결과를 생성하면 메일과 소셜 공유용 링크가 준비됩니다.</p>
+        <div id="shareActions" class="share-actions" hidden>
+          <button id="emailShareBtn" class="btn-secondary" type="button">메일로 보내기</button>
+          <button id="socialShareBtn" class="btn-secondary" type="button">소셜 공유</button>
+          <button id="copyShareBtn" class="btn-secondary" type="button">링크 복사</button>
         </div>
         <div id="results" class="results-wrap">
           <p class="empty">아직 생성된 게임이 없습니다.</p>
@@ -1592,6 +1628,11 @@
   var allDrawsToggleEl = document.getElementById('allDrawsToggle');
   var summaryEl = document.getElementById('summary');
   var resultEl = document.getElementById('results');
+  var shareHintEl = document.getElementById('shareHint');
+  var shareActionsEl = document.getElementById('shareActions');
+  var emailShareBtnEl = document.getElementById('emailShareBtn');
+  var socialShareBtnEl = document.getElementById('socialShareBtn');
+  var copyShareBtnEl = document.getElementById('copyShareBtn');
   var tabGenerateBtnEl = document.getElementById('tabGenerateBtn');
   var tabCompareBtnEl = document.getElementById('tabCompareBtn');
   var tabStatsBtnEl = document.getElementById('tabStatsBtn');
@@ -1657,6 +1698,7 @@
   };
   var AD_STICKY_DISMISS_KEY = 'lotto_ad_sticky_dismissed';
   var adStickyDismissed = false;
+  var currentGeneratedRun = null;
   var adSettings = {
     enabled: false,
     provider: 'none',
@@ -1684,6 +1726,42 @@
 
   function setSummaryEmpty() {
     summaryEl.innerHTML = '<span class="chip chip-muted">아직 실행된 결과가 없습니다.</span>';
+  }
+
+  function getStrategyDisplayName(strategy) {
+    if (!strategy) {
+      return '-';
+    }
+    if (Object.prototype.hasOwnProperty.call(strategyLabels, strategy)) {
+      return strategyLabels[strategy];
+    }
+    return strategy;
+  }
+
+  function setShareActionsEmpty() {
+    if (shareHintEl) {
+      shareHintEl.textContent = '결과를 생성하면 메일과 소셜 공유용 링크가 준비됩니다.';
+    }
+    if (shareActionsEl) {
+      shareActionsEl.hidden = true;
+    }
+  }
+
+  function setCurrentGeneratedRun(data) {
+    currentGeneratedRun = data || null;
+    if (!currentGeneratedRun || !currentGeneratedRun.run_id) {
+      setShareActionsEmpty();
+      return;
+    }
+    var optionText = formatStrategyOptions(currentGeneratedRun.strategy_options);
+    if (shareHintEl) {
+      shareHintEl.textContent =
+        '공유 내용에 전략 "' + getStrategyDisplayName(currentGeneratedRun.strategy) +
+        '"과 옵션 "' + optionText + '"가 함께 포함됩니다.';
+    }
+    if (shareActionsEl) {
+      shareActionsEl.hidden = false;
+    }
   }
 
   function setPickSummaryEmpty() {
@@ -2222,16 +2300,189 @@
   function formatStrategyOptions(options) {
     var active = [];
     var opts = options || {};
-    for (var i = 0; i < strategyOptionKeys.length; i++) {
-      var key = strategyOptionKeys[i];
-      if (opts[key]) {
-        active.push(strategyOptionLabels[key]);
+    var orderedKeys = strategyOptionKeys.slice();
+    for (var key in strategyOptionLabels) {
+      if (!Object.prototype.hasOwnProperty.call(strategyOptionLabels, key)) {
+        continue;
+      }
+      if (orderedKeys.indexOf(key) === -1) {
+        orderedKeys.push(key);
+      }
+    }
+    for (var i = 0; i < orderedKeys.length; i++) {
+      var optionKey = orderedKeys[i];
+      if (!Object.prototype.hasOwnProperty.call(opts, optionKey)) {
+        continue;
+      }
+      var value = opts[optionKey];
+      if (value === true) {
+        active.push(strategyOptionLabels[optionKey] || optionKey);
+      } else if (value !== false && value !== null && typeof value !== 'undefined' && value !== '') {
+        active.push((strategyOptionLabels[optionKey] || optionKey) + ': ' + value);
       }
     }
     if (active.length === 0) {
       return '없음';
     }
     return active.join(' + ');
+  }
+
+  function safeParseJson(text, fallback) {
+    if (!text) {
+      return fallback;
+    }
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function buildRunShareUrl(runId) {
+    var url = new URL(window.location.href);
+    url.searchParams.set('run_id', String(runId));
+    return url.toString();
+  }
+
+  function syncRunUrl(runId) {
+    if (!runId || !window.history || typeof window.history.replaceState !== 'function') {
+      return;
+    }
+    window.history.replaceState({}, '', buildRunShareUrl(runId));
+  }
+
+  function buildSharePayload() {
+    if (!currentGeneratedRun || !currentGeneratedRun.run_id) {
+      return null;
+    }
+    var shareUrl = buildRunShareUrl(currentGeneratedRun.run_id);
+    var strategyName = getStrategyDisplayName(currentGeneratedRun.strategy);
+    var optionText = formatStrategyOptions(currentGeneratedRun.strategy_options);
+    var previewGame = currentGeneratedRun.games && currentGeneratedRun.games[0] ? currentGeneratedRun.games[0] : null;
+    var previewText = previewGame && previewGame.numbers ? previewGame.numbers.join(', ') : '';
+    var summaryText = [
+      '전략: ' + strategyName,
+      '옵션: ' + optionText,
+      '게임 수: ' + currentGeneratedRun.game_count,
+      previewText ? '대표 조합: ' + previewText : '',
+      '평가 기준 회차: ' + currentGeneratedRun.evaluated_until
+    ].filter(Boolean);
+    if (typeof currentGeneratedRun.seed === 'number') {
+      summaryText.push('시드: ' + currentGeneratedRun.seed);
+    }
+    return {
+      title: '로또 전략 생성 결과 - ' + strategyName,
+      text: summaryText.join('\n'),
+      body: ['로또 전략 생성 결과를 공유합니다.'].concat(summaryText).concat(['링크: ' + shareUrl]).join('\n'),
+      socialText: '로또 전략 생성 결과 공유 | 전략: ' + strategyName + ' | 옵션: ' + optionText + ' | 게임 수: ' + currentGeneratedRun.game_count,
+      url: shareUrl
+    };
+  }
+
+  function copyTextToClipboard(text) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', 'readonly');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      try {
+        if (document.execCommand('copy')) {
+          resolve();
+        } else {
+          reject(new Error('copy command failed'));
+        }
+      } catch (err) {
+        reject(err);
+      } finally {
+        document.body.removeChild(area);
+      }
+    });
+  }
+
+  function shareByEmail() {
+    var payload = buildSharePayload();
+    if (!payload) {
+      setStatus('공유할 생성 결과가 없습니다.', 'error');
+      return;
+    }
+    window.location.href =
+      'mailto:?subject=' + encodeURIComponent(payload.title) +
+      '&body=' + encodeURIComponent(payload.body);
+  }
+
+  function shareToSocial() {
+    var payload = buildSharePayload();
+    if (!payload) {
+      setStatus('공유할 생성 결과가 없습니다.', 'error');
+      return;
+    }
+    if (navigator.share) {
+      navigator.share({
+        title: payload.title,
+        text: payload.text,
+        url: payload.url
+      }).then(function () {
+        setStatus('소셜 공유를 완료했습니다.', 'ok');
+      }).catch(function (err) {
+        if (err && err.name === 'AbortError') {
+          return;
+        }
+        setStatus('소셜 공유 실패: ' + err.message, 'error');
+      });
+      return;
+    }
+    var xShareUrl =
+      'https://twitter.com/intent/tweet?text=' +
+      encodeURIComponent(payload.socialText) +
+      '&url=' + encodeURIComponent(payload.url);
+    window.open(xShareUrl, '_blank', 'noopener,noreferrer');
+    setStatus('소셜 공유 창을 열었습니다.', 'ok');
+  }
+
+  function copyShareLink() {
+    var payload = buildSharePayload();
+    if (!payload) {
+      setStatus('공유할 생성 결과가 없습니다.', 'error');
+      return;
+    }
+    copyTextToClipboard(payload.url)
+      .then(function () {
+        setStatus('공유 링크를 복사했습니다.', 'ok');
+      })
+      .catch(function (err) {
+        setStatus('링크 복사 실패: ' + err.message, 'error');
+      });
+  }
+
+  function applyGenerateControls(data) {
+    if (!data) {
+      return;
+    }
+    if (typeof data.game_count === 'number') {
+      document.getElementById('gameCount').value = String(data.game_count);
+    }
+    document.getElementById('seed').value = typeof data.seed === 'number' ? String(data.seed) : '';
+
+    var selectedRadio = document.querySelector('input[name="strategy"][data-strategy="' + data.strategy + '"]');
+    if (selectedRadio) {
+      selectedRadio.checked = true;
+    }
+
+    var options = data.strategy_options || {};
+    document.getElementById('optAvoidBirthday').checked = !!options.avoid_birthday_bias;
+    document.getElementById('optIncludeConsecutive').checked = !!options.include_consecutive_pair;
+    document.getElementById('optAvoidPopular').checked = !!options.avoid_popular_numbers;
+    document.getElementById('optBalancedOddEven').checked = !!options.balanced_odd_even;
+    document.getElementById('optBalancedHighLow').checked = !!options.balanced_high_low;
+    document.getElementById('optSumBand').checked = !!options.sum_band_100_170;
+    document.getElementById('optAvoidSameLastDigitCluster').checked = !!options.avoid_same_last_digit_cluster;
+    document.getElementById('optAvoidArithmeticSequence').checked = !!options.avoid_arithmetic_sequence;
   }
 
   function renderAllDraws(draws) {
@@ -2277,6 +2528,120 @@
     return '<table class="detail-table">' +
       '<thead><tr><th>회차</th><th>당첨번호(보너스 제외)</th><th>일치 개수</th><th>보너스</th><th>당첨된 번호</th><th>등수</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderGeneratedSummary(data, fromSharedLink) {
+    var html = '';
+    html += '<span class="chip">실행 ID ' + data.run_id + '</span>';
+    html += '<span class="chip">전략 ' + formatStrategyLabel(data.strategy) + '</span>';
+    html += '<span class="chip">옵션 ' + formatStrategyOptions(data.strategy_options) + '</span>';
+    html += '<span class="chip">게임 수 ' + data.game_count + '</span>';
+    if (typeof data.seed === 'number') {
+      html += '<span class="chip">시드 ' + data.seed + '</span>';
+    }
+    html += '<span class="chip">평가 기준 회차 ' + data.evaluated_until + '</span>';
+    if (fromSharedLink) {
+      html += '<span class="chip">공유 링크 열람</span>';
+    }
+    summaryEl.innerHTML = html;
+  }
+
+  function renderGeneratedResultRows(games) {
+    var rows = '';
+    for (var i = 0; i < games.length; i++) {
+      var g = games[i];
+      var dist = renderDistribution(g.rank_distribution);
+      var detailId = 'game-detail-' + i;
+      var hasHits = g.hits && g.hits.length > 0;
+      var detailRows = renderGameDetailHits(g.hits);
+      var toggleLabel = hasHits ? '▶' : '－';
+      var toggleTitle = hasHits ? '당첨 내역 보기' : '당첨 내역 없음';
+      var disabledAttr = hasHits ? '' : ' disabled';
+      var toggleCell = '<button class="toggle-btn game-toggle" data-target="' + detailId + '" aria-expanded="false" title="' + toggleTitle + '"' + disabledAttr + '>' + toggleLabel + '</button>';
+
+      rows += '<tr class="game-row">' +
+        '<td>' + toggleCell + '</td>' +
+        '<td>' + (g.game_index + 1) + '</td>' +
+        '<td>' + renderNumberBalls(g.numbers) + '</td>' +
+        '<td>' + dist + '</td>' +
+        '<td>' + g.total_hits + '</td>' +
+        '</tr>';
+      rows += '<tr id="' + detailId + '" class="game-detail-row" style="display:none;">' +
+        '<td colspan="5">' +
+        '<div class="game-detail">' + detailRows + '</div>' +
+        '</td>' +
+        '</tr>';
+    }
+    return rows;
+  }
+
+  function bindGeneratedResultToggles() {
+    var toggles = document.getElementsByClassName('game-toggle');
+    for (var t = 0; t < toggles.length; t++) {
+      toggles[t].addEventListener('click', function () {
+        if (this.disabled) {
+          return;
+        }
+        var targetId = this.getAttribute('data-target');
+        var row = document.getElementById(targetId);
+        if (!row) {
+          return;
+        }
+        var panel = row.querySelector('.game-detail');
+        var expanded = this.getAttribute('aria-expanded') === 'true';
+
+        if (expanded) {
+          row.style.display = 'none';
+          panel.style.display = 'none';
+          this.setAttribute('aria-expanded', 'false');
+          this.textContent = '▶';
+        } else {
+          row.style.display = 'table-row';
+          panel.style.display = 'block';
+          this.setAttribute('aria-expanded', 'true');
+          this.textContent = '▼';
+        }
+      });
+    }
+  }
+
+  function renderGeneratedRun(data, options) {
+    options = options || {};
+    if (!data || !data.games) {
+      setSummaryEmpty();
+      setCurrentGeneratedRun(null);
+      resultEl.innerHTML = '<p class="empty">표시할 생성 결과가 없습니다.</p>';
+      return;
+    }
+    data.loaded_from_share = !!options.fromSharedLink;
+    renderGeneratedSummary(data, !!options.fromSharedLink);
+    var rows = renderGeneratedResultRows(data.games);
+    resultEl.innerHTML = '<div class="scroll-table"><table class="result-table"><thead><tr><th></th><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    bindGeneratedResultToggles();
+    setCurrentGeneratedRun(data);
+    applyGenerateControls(data);
+    if (!options.skipUrlSync) {
+      syncRunUrl(data.run_id);
+    }
+    if (options.fromSharedLink) {
+      switchTab('generate');
+    }
+  }
+
+  function mapGameDetailToGeneratedRun(data) {
+    if (!data || !data.run) {
+      return null;
+    }
+    return {
+      run_id: data.run.id,
+      created_at: data.run.created_at || '',
+      strategy: data.run.strategy_name,
+      strategy_options: safeParseJson(data.run.options_json, {}),
+      game_count: data.run.game_count,
+      seed: data.run.seed,
+      evaluated_until: data.run.evaluated_until,
+      games: data.game_sets || []
+    };
   }
 
   function renderNumberCheckResult(data) {
@@ -2326,9 +2691,42 @@
           strategyOptionLabels = data.strategy_options;
         }
         initAds(data ? data.ads : null);
+        if (currentGeneratedRun) {
+          renderGeneratedSummary(currentGeneratedRun, !!currentGeneratedRun.loaded_from_share);
+          setCurrentGeneratedRun(currentGeneratedRun);
+        }
       })
       .catch(function () {
         initAds(null);
+      });
+  }
+
+  function loadSharedRunFromLocation() {
+    var params = new URLSearchParams(window.location.search);
+    var rawRunId = params.get('run_id');
+    if (!rawRunId) {
+      return;
+    }
+    var runId = parseInt(rawRunId, 10);
+    if (isNaN(runId) || runId < 1) {
+      setStatus('공유 링크의 실행 ID가 올바르지 않습니다.', 'error');
+      return;
+    }
+    setStatus('공유된 생성 결과를 불러오는 중...', 'running');
+    fetchJson('/api/games/' + runId)
+      .then(function (data) {
+        var generatedRun = mapGameDetailToGeneratedRun(data);
+        if (!generatedRun) {
+          throw new Error('공유 결과를 해석할 수 없습니다.');
+        }
+        renderGeneratedRun(generatedRun, { fromSharedLink: true });
+        setStatus('공유된 생성 결과를 불러왔습니다.', 'ok');
+      })
+      .catch(function (err) {
+        setSummaryEmpty();
+        setCurrentGeneratedRun(null);
+        resultEl.innerHTML = '<p class="empty">공유 결과를 불러오지 못했습니다.</p>';
+        setStatus('공유 결과 로딩 실패: ' + err.message, 'error');
       });
   }
 
@@ -2648,72 +3046,12 @@
       body: JSON.stringify(body)
     })
       .then(function (data) {
-        var html = '';
-        html += '<span class="chip">실행 ID ' + data.run_id + '</span>';
-        html += '<span class="chip">전략 ' + formatStrategyLabel(data.strategy) + '</span>';
-        html += '<span class="chip">옵션 ' + formatStrategyOptions(data.strategy_options) + '</span>';
-        html += '<span class="chip">게임 수 ' + data.game_count + '</span>';
-        html += '<span class="chip">평가 기준 회차 ' + data.evaluated_until + '</span>';
-        summaryEl.innerHTML = html;
-
-        var rows = '';
-        for (var i = 0; i < data.games.length; i++) {
-          var g = data.games[i];
-          var dist = renderDistribution(g.rank_distribution);
-          var detailId = 'game-detail-' + i;
-          var hasHits = g.hits && g.hits.length > 0;
-          var detailRows = renderGameDetailHits(g.hits);
-          var toggleLabel = hasHits ? '▶' : '－';
-          var toggleTitle = hasHits ? '당첨 내역 보기' : '당첨 내역 없음';
-          var disabledAttr = hasHits ? '' : ' disabled';
-          var toggleCell = '<button class="toggle-btn game-toggle" data-target="' + detailId + '" aria-expanded="false" title="' + toggleTitle + '"' + disabledAttr + '>' + toggleLabel + '</button>';
-
-          rows += '<tr class="game-row">' +
-            '<td>' + toggleCell + '</td>' +
-            '<td>' + (g.game_index + 1) + '</td>' +
-            '<td>' + renderNumberBalls(g.numbers) + '</td>' +
-            '<td>' + dist + '</td>' +
-            '<td>' + g.total_hits + '</td>' +
-            '</tr>';
-          rows += '<tr id="' + detailId + '" class="game-detail-row" style="display:none;">' +
-            '<td colspan="5">' +
-            '<div class="game-detail">' + detailRows + '</div>' +
-            '</td>' +
-            '</tr>';
-        }
-
-        resultEl.innerHTML = '<div class="scroll-table"><table class="result-table"><thead><tr><th></th><th>#</th><th>번호</th><th>등수 분포</th><th>누적 1~5등</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
-
-        var toggles = document.getElementsByClassName('game-toggle');
-        for (var t = 0; t < toggles.length; t++) {
-          toggles[t].addEventListener('click', function () {
-            if (this.disabled) {
-              return;
-            }
-            var targetId = this.getAttribute('data-target');
-            var row = document.getElementById(targetId);
-            if (!row) {
-              return;
-            }
-            var panel = row.querySelector('.game-detail');
-            var expanded = this.getAttribute('aria-expanded') === 'true';
-
-            if (expanded) {
-              row.style.display = 'none';
-              panel.style.display = 'none';
-              this.setAttribute('aria-expanded', 'false');
-              this.textContent = '▶';
-            } else {
-              row.style.display = 'table-row';
-              panel.style.display = 'block';
-              this.setAttribute('aria-expanded', 'true');
-              this.textContent = '▼';
-            }
-          });
-        }
+        renderGeneratedRun(data);
         setStatus('게임 생성 완료', 'ok');
       })
       .catch(function (err) {
+        setSummaryEmpty();
+        setCurrentGeneratedRun(null);
         setStatus('게임 생성 실패: ' + err.message, 'error');
         resultEl.innerHTML = '<p class="empty">게임 생성에 실패했습니다.</p>';
       });
@@ -2805,6 +3143,9 @@
   compareRunBtnEl.addEventListener('click', runCompare);
   compareResetBtnEl.addEventListener('click', resetCompareSelection);
   statsLoadBtnEl.addEventListener('click', loadStatsDashboard);
+  emailShareBtnEl.addEventListener('click', shareByEmail);
+  socialShareBtnEl.addEventListener('click', shareToSocial);
+  copyShareBtnEl.addEventListener('click', copyShareLink);
   checkNumbersBtnEl.addEventListener('click', runNumberCheck);
   clearNumbersBtnEl.addEventListener('click', clearPickSelection);
   allDrawsToggleEl.addEventListener('click', function () {
@@ -2828,12 +3169,14 @@
   });
 
   setSummaryEmpty();
+  setShareActionsEmpty();
   resetCompareSelection();
   setPickSummaryEmpty();
   renderPickGrid();
   updatePickSelectionUi();
   loadMetaConfig();
   loadDraws();
+  loadSharedRunFromLocation();
 </script>
 </body>
 </html>
