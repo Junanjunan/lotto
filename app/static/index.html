@@ -2358,23 +2358,36 @@
     var shareUrl = buildRunShareUrl(currentGeneratedRun.run_id);
     var strategyName = getStrategyDisplayName(currentGeneratedRun.strategy);
     var optionText = formatStrategyOptions(currentGeneratedRun.strategy_options);
-    var previewGame = currentGeneratedRun.games && currentGeneratedRun.games[0] ? currentGeneratedRun.games[0] : null;
-    var previewText = previewGame && previewGame.numbers ? previewGame.numbers.join(', ') : '';
+    var games = Array.isArray(currentGeneratedRun.games) ? currentGeneratedRun.games : [];
+    var gameLines = games
+      .filter(function (game) {
+        return game && Array.isArray(game.numbers) && game.numbers.length === 6;
+      })
+      .map(function (game, index) {
+        var gameIndex = typeof game.game_index === 'number' ? game.game_index + 1 : index + 1;
+        return gameIndex + '게임: ' + game.numbers.join(', ');
+      });
     var summaryText = [
       '전략: ' + strategyName,
       '옵션: ' + optionText,
       '게임 수: ' + currentGeneratedRun.game_count,
-      previewText ? '대표 조합: ' + previewText : '',
       '평가 기준 회차: ' + currentGeneratedRun.evaluated_until
     ].filter(Boolean);
     if (typeof currentGeneratedRun.seed === 'number') {
       summaryText.push('시드: ' + currentGeneratedRun.seed);
     }
+    if (gameLines.length > 0) {
+      summaryText.push('게임 조합:');
+      summaryText = summaryText.concat(gameLines);
+    }
     return {
       title: '로또 전략 생성 결과 - ' + strategyName,
       text: summaryText.join('\n'),
       body: ['로또 전략 생성 결과를 공유합니다.'].concat(summaryText).concat(['링크: ' + shareUrl]).join('\n'),
-      socialText: '로또 전략 생성 결과 공유 | 전략: ' + strategyName + ' | 옵션: ' + optionText + ' | 게임 수: ' + currentGeneratedRun.game_count,
+      socialText: ['로또 전략 생성 결과 공유']
+        .concat(summaryText)
+        .concat(['링크: ' + shareUrl])
+        .join('\n'),
       url: shareUrl
     };
   }
